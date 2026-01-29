@@ -1,0 +1,5 @@
+# @package model
+name: model1
+hidden_dim: 128
+num_layers: 2
+activation: relu

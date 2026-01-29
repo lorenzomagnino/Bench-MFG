@@ -1,0 +1,11 @@
+# @package saving
+# Experiment configuration
+
+name: ${experiment_name}
+is_saved: True
+description: "Default experiment"
+run:
+  dir: outputs/${now:%Y-%m-%d}/${environment.name}/${model.name}/${experiment_name}
+sweep:
+  dir: multirun/${now:%Y-%m-%d}/${environment.name}/${model.name}/${experiment_name}
+  subdir: ${hydra:job.num}

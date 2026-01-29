@@ -1,0 +1,6 @@
+# @package logging
+wandb:
+  project: roboml-research
+  entity: null
+  mode: online  # online, offline, disabled
+  tags: []

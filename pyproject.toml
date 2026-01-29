@@ -1,0 +1,44 @@
+[project]
+name = "roboml-research-template"
+version = "0.1.0"
+description = "A lightweight, opinionated template for running machine learning and robotics research projects"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "hydra-core>=1.3.0",
+    "wandb>=0.15.0",
+    "torch>=2.0.0",
+    "omegaconf>=2.3.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.1.0",
+    "black>=23.0.0",
+    "pytest>=7.0.0",
+    "pre-commit>=3.0.0",
+    # "mypy>=1.0.0",  # Commented out for now
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+ignore = []
+
+[tool.black]
+line-length = 100
+target-version = ["py38"]
+
+# [tool.mypy]
+# python_version = "3.8"
+# warn_return_any = true
+# warn_unused_configs = true
+# disallow_untyped_defs = false

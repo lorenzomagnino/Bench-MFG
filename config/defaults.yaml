@@ -1,0 +1,13 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - environment: environment
+  - model: model1
+  - training: training_v0
+  - logging: logging
+  - saving: saving
+
+experiment_name: default_experiment
+seed: 42
+device: cpu  # cpu, cuda
