@@ -4,19 +4,19 @@
 defaults:
   - _self_
 # ----- ALGORITHMS -----
-  # - algorithm/damped_fixed_point
+  - algorithm/damped_fixed_point
   # - algorithm/pi
   # - algorithm/omd
-  - algorithm/pso
+  # - algorithm/pso
 # ----- ENVIRONMENTS -----
   # - environment/no_interaction_game
-  # - environment/lasry_lions_chain
+  - environment/lasry_lions_chain
   # - environment/four_rooms_obstacles
   # - environment/rock_paper_scissors
   # - environment/sis_epidemic
   # - environment/kinetic_congestion
   # - environment/mf_garnet
-  - environment/multiple_equilibria
+  # - environment/multiple_equilibria
   # - environment/contraction_game
 # ----- UTILS -----
   - experiment/experiment
