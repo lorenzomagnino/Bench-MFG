@@ -1,0 +1,38 @@
+# @package environment
+# Rock-Paper-Scissors Mean Field Game environment configuration
+#
+# This is a non-potential MFG with a skew-symmetric interaction matrix.
+# The Nash equilibrium is μ* = [1/3, 1/3, 1/3]ᵀ
+#
+# State space: {0: Rock, 1: Paper, 2: Scissors}
+# Action space: {0: Rock, 1: Paper, 2: Scissors}
+# The transition is deterministic: next_state = action
+
+name: "RockPaperScissors"
+
+grid:
+  is_grid: false
+
+num_states: 3  # Fixed: Rock, Paper, Scissors
+num_actions: 3  # Fixed: Rock, Paper, Scissors
+num_noises: 1  # Not used in deterministic transitions, but required by base class
+horizon: 100    # Time horizon
+gamma: 0.90     # Discount factor (0 <= gamma <= 1)
+
+# Dynamics parameters
+dynamics:
+  is_noisy: false  # Transitions are deterministic
+  noise_probabilities: [1.0]  # Single noise value (not used)
+
+# Reward parameters
+# The reward function is g(x, μ) = [Aμ]x where A is the skew-symmetric interaction matrix
+# No additional reward parameters needed - the interaction matrix is fixed
+reward: {}
+
+# Initial distribution
+# Default to uniform distribution (Nash equilibrium)
+initial_distribution:
+  type: "uniform"  # uniform, concentrated, custom
+  concentration_state: 0  # Not used if type = "uniform"
+  concentration_ratio: 0.8  # Not used if type = "uniform"
+

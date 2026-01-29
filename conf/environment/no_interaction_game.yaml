@@ -1,0 +1,32 @@
+# @package environment
+# No Interaction Chain environment configuration
+
+
+name: "NoInteractionChain"
+
+grid:
+  is_grid: false
+
+num_states: 7  # Number of states in the discrete chain
+num_actions: 3
+num_noises: 3
+horizon: 100    # Time horizon
+gamma: 0.90     # Discount factor (0 <= gamma <= 1)
+
+# Dynamics parameters
+dynamics:
+  is_noisy: true
+  noise_probabilities: [0.025, 0.95, 0.025]  # P(ε = -1), P(ε = 0), P(ε = 1)
+
+# Reward parameters
+reward:
+  no_interaction:
+    movement_penalty: 0.1
+
+# Initial distribution
+initial_distribution:
+  type: "uniform"  # uniform, concentrated, custom
+  concentration_state: 5  # State where agents concentrate (if type = "concentrated")
+  concentration_ratio: 0.8  # Fraction of agents at concentration_state
+
+

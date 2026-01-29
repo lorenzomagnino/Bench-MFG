@@ -1,0 +1,20 @@
+environment: RockPaperScissors
+best_version: boltzmann_pi_sweep_temp0p80_damped0p10
+final_mean_exploitability: 4.6937105935285217e-07
+all_versions:
+- version: boltzmann_pi_sweep_temp0p80_damped0p10
+  final_mean_exploitability: 4.6937105935285217e-07
+- version: pso_sweep_temp0p20_w0p70_c11p20_c21p20
+  final_mean_exploitability: 0.0009634509842726402
+- version: omd_sweep_lr0p0050_temp0p80
+  final_mean_exploitability: 0.01044853578787297
+- version: fplay_sweep
+  final_mean_exploitability: 0.4882063567638397
+- version: pure_fp_sweep
+  final_mean_exploitability: 8.999702453613281
+- version: policy_iteration_sweep_temp0p20
+  final_mean_exploitability: 8.999702453613281
+- version: smooth_pi_sweep_temp0p20_damped0p10
+  final_mean_exploitability: 8.999702453613281
+- version: damped_sweep_damped0p10
+  final_mean_exploitability: 8.999702453613281

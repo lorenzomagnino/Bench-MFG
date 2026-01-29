@@ -1,0 +1,30 @@
+algorithm: OMD
+environment: SISEpidemic
+best_models:
+- rank: 1
+  version: omd_sweep_lr0p5000_temp0p20
+  final_exploitability: 0.0
+- rank: 2
+  version: omd_sweep_lr0p5000_temp0p50
+  final_exploitability: 0.0
+- rank: 3
+  version: omd_sweep_lr0p5000_temp0p80
+  final_exploitability: 0.0
+- rank: 4
+  version: omd_sweep_lr0p0500_temp0p20
+  final_exploitability: 0.0015804767608642578
+- rank: 5
+  version: omd_sweep_lr0p0500_temp0p50
+  final_exploitability: 0.35894131660461426
+- rank: 6
+  version: omd_sweep_lr0p0050_temp0p80
+  final_exploitability: 0.7638967931270599
+- rank: 7
+  version: omd_sweep_lr0p0050_temp0p20
+  final_exploitability: 1.5408408641815186
+- rank: 8
+  version: omd_sweep_lr0p0050_temp0p50
+  final_exploitability: 1.7105904519557953
+- rank: 9
+  version: omd_sweep_lr0p0500_temp0p80
+  final_exploitability: 3.2735496759414673

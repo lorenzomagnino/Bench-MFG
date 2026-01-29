@@ -1,0 +1,39 @@
+# @package environment
+# Contraction Game environment configuration
+#
+# A 2-state, 2-action deterministic MFG where:
+# - State space: {0, 1}
+# - Action space: {Stay, Switch}
+# - Dynamics: x_{n+1} = x_n if Stay, x_{n+1} = 1-x_n if Switch
+# - Reward: r(x, a, μ) = -C · I(a=Switch) - α μ(x)
+#
+# If C > α/(1-γ), the best response is unique and constant (always Stay),
+# making the fixed-point operator a contraction.
+
+name: "ContractionGame"
+
+grid:
+  is_grid: false
+
+num_states: 2  # Fixed: {0, 1}
+num_actions: 2  # Fixed: {Stay, Switch}
+num_noises: 1  # Deterministic (not used)
+horizon: 100    # Time horizon
+gamma: 0.90     # Discount factor (0 <= gamma <= 1)
+
+# Dynamics parameters
+dynamics:
+  is_noisy: false  # Deterministic transitions
+  noise_probabilities: [1.0]  # Single noise value (not used)
+
+# Reward parameters
+reward:
+  contraction_game:
+    switching_cost: 2.0        # C: cost for switching states (should be > α/(1-γ) for contraction)
+    congestion_coefficient: 2.0  # α: congestion penalty coefficient
+
+# Initial distribution
+initial_distribution:
+  type: "uniform"  # uniform, concentrated, custom
+  concentration_state: 0  # State where agents concentrate (if type = "concentrated")
+  concentration_ratio: 0.5  # Fraction of agents at concentration_state

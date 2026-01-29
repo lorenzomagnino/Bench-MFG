@@ -1,0 +1,12 @@
+algorithm: PI_smooth_policy_iteration
+environment: FourRoomsAversion2D
+best_models:
+- rank: 1
+  version: smooth_pi_sweep_temp0p20_damped0p10
+  final_exploitability: 204.85914993286133
+- rank: 2
+  version: smooth_pi_sweep_temp0p20_damped0p80
+  final_exploitability: 207.95886993408203
+- rank: 3
+  version: smooth_pi_sweep_temp0p20_damped0p50
+  final_exploitability: 212.38702392578125

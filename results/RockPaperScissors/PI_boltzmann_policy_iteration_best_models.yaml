@@ -1,0 +1,30 @@
+algorithm: PI_boltzmann_policy_iteration
+environment: RockPaperScissors
+best_models:
+- rank: 1
+  version: boltzmann_pi_sweep_temp0p80_damped0p10
+  final_exploitability: 4.6937105935285217e-07
+- rank: 2
+  version: boltzmann_pi_sweep_temp0p80_damped0p50
+  final_exploitability: 4.6937105935285217e-07
+- rank: 3
+  version: boltzmann_pi_sweep_temp0p80_damped0p80
+  final_exploitability: 4.6937105935285217e-07
+- rank: 4
+  version: boltzmann_pi_sweep_temp0p50_damped0p10
+  final_exploitability: 1.882264792919159
+- rank: 5
+  version: boltzmann_pi_sweep_temp0p50_damped0p50
+  final_exploitability: 1.882264792919159
+- rank: 6
+  version: boltzmann_pi_sweep_temp0p50_damped0p80
+  final_exploitability: 1.882264792919159
+- rank: 7
+  version: boltzmann_pi_sweep_temp0p20_damped0p10
+  final_exploitability: 8.76297903060913
+- rank: 8
+  version: boltzmann_pi_sweep_temp0p20_damped0p50
+  final_exploitability: 8.76297903060913
+- rank: 9
+  version: boltzmann_pi_sweep_temp0p20_damped0p80
+  final_exploitability: 8.76297903060913

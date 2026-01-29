@@ -1,0 +1,30 @@
+algorithm: PI_boltzmann_policy_iteration
+environment: LasryLionsChain
+best_models:
+- rank: 1
+  version: boltzmann_pi_sweep_temp0p20_damped0p10
+  final_exploitability: 429.2251892089844
+- rank: 2
+  version: boltzmann_pi_sweep_temp0p20_damped0p50
+  final_exploitability: 429.2251892089844
+- rank: 3
+  version: boltzmann_pi_sweep_temp0p20_damped0p80
+  final_exploitability: 429.2251892089844
+- rank: 4
+  version: boltzmann_pi_sweep_temp0p50_damped0p10
+  final_exploitability: 472.1112823486328
+- rank: 5
+  version: boltzmann_pi_sweep_temp0p50_damped0p50
+  final_exploitability: 472.1112823486328
+- rank: 6
+  version: boltzmann_pi_sweep_temp0p50_damped0p80
+  final_exploitability: 472.1112823486328
+- rank: 7
+  version: boltzmann_pi_sweep_temp0p80_damped0p10
+  final_exploitability: 472.50804138183594
+- rank: 8
+  version: boltzmann_pi_sweep_temp0p80_damped0p50
+  final_exploitability: 472.50804138183594
+- rank: 9
+  version: boltzmann_pi_sweep_temp0p80_damped0p80
+  final_exploitability: 472.50804138183594

@@ -1,0 +1,18 @@
+environment: SISEpidemic
+best_version: omd_sweep_lr0p5000_temp0p20
+final_mean_exploitability: 0.0
+all_versions:
+- version: omd_sweep_lr0p5000_temp0p20
+  final_mean_exploitability: 0.0
+- version: fplay_sweep
+  final_mean_exploitability: 9.939168930053711
+- version: smooth_pi_sweep_temp0p20_damped0p10
+  final_mean_exploitability: 9.997746467590332
+- version: damped_sweep_damped0p10
+  final_mean_exploitability: 9.997746467590332
+- version: boltzmann_pi_sweep_temp0p50_damped0p10
+  final_mean_exploitability: 14.34925663471222
+- version: pure_fp_sweep
+  final_mean_exploitability: 27.037785530090332
+- version: policy_iteration_sweep_temp0p20
+  final_mean_exploitability: 27.037785530090332

@@ -1,0 +1,44 @@
+
+# 2D 4-Rooms Aversion environment configuration (static obstacles)
+
+name: "FourRoomsAversion2D"
+
+grid:
+  is_grid: true
+  dimension: [11, 11]
+  walls_enabled: true
+
+num_states: 121
+num_actions: 5
+num_noises: 5
+horizon: 100 # we can play with this value tbh
+gamma: 0.90
+
+# Dynamics parameters
+dynamics:
+  is_noisy: true
+  noise_probabilities: [0.2, 0.2, 0.2, 0.2, 0.2]
+
+# Obstacle layout
+obstacles:
+  type: "four_rooms_cross"
+  walls:
+    row: 5
+    col: 5
+  doors:
+    - [2, 5]
+    - [8, 5]
+    - [5, 8]
+    - [5, 2]
+# Reward parameters
+reward:
+  aversion:
+    alpha: 1.0        # r(x,a,mu) = -alpha * log(mu(x))
+    epsilon: 1e-12    # numerical stability for log(0)
+
+# Initial distribution
+initial_distribution:
+  type: "uniform"     # uniform, concentrated, custom
+  concentration_state: 0   # used only if type="concentrated"
+  concentration_ratio: 0.8
+

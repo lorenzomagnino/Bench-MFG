@@ -1,0 +1,30 @@
+algorithm: OMD
+environment: RockPaperScissors
+best_models:
+- rank: 1
+  version: omd_sweep_lr0p0050_temp0p80
+  final_exploitability: 0.01044853578787297
+- rank: 2
+  version: omd_sweep_lr0p0050_temp0p50
+  final_exploitability: 0.016003608237951994
+- rank: 3
+  version: omd_sweep_lr0p0050_temp0p20
+  final_exploitability: 0.038469649851322174
+- rank: 4
+  version: omd_sweep_lr0p0500_temp0p80
+  final_exploitability: 0.1088936161249876
+- rank: 5
+  version: omd_sweep_lr0p0500_temp0p50
+  final_exploitability: 0.16951624304056168
+- rank: 6
+  version: omd_sweep_lr0p0500_temp0p20
+  final_exploitability: 1.4260271191596985
+- rank: 7
+  version: omd_sweep_lr0p5000_temp0p50
+  final_exploitability: 6.953882157802582
+- rank: 8
+  version: omd_sweep_lr0p5000_temp0p80
+  final_exploitability: 8.387834787368774
+- rank: 9
+  version: omd_sweep_lr0p5000_temp0p20
+  final_exploitability: 8.912511587142944

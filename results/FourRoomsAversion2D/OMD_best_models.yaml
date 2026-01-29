@@ -1,0 +1,30 @@
+algorithm: OMD
+environment: FourRoomsAversion2D
+best_models:
+- rank: 1
+  version: omd_sweep_lr0p5000_temp0p80
+  final_exploitability: 0.0005512237548828125
+- rank: 2
+  version: omd_sweep_lr0p0500_temp0p20
+  final_exploitability: 0.0032358169555664062
+- rank: 3
+  version: omd_sweep_lr0p0500_temp0p50
+  final_exploitability: 0.010396003723144531
+- rank: 4
+  version: omd_sweep_lr0p0500_temp0p80
+  final_exploitability: 0.020737648010253906
+- rank: 5
+  version: omd_sweep_lr0p0050_temp0p20
+  final_exploitability: 0.04662132263183594
+- rank: 6
+  version: omd_sweep_lr0p0050_temp0p80
+  final_exploitability: 0.048119544982910156
+- rank: 7
+  version: omd_sweep_lr0p0050_temp0p50
+  final_exploitability: 0.05296039581298828
+- rank: 8
+  version: omd_sweep_lr0p5000_temp0p50
+  final_exploitability: 25.57772159576416
+- rank: 9
+  version: omd_sweep_lr0p5000_temp0p20
+  final_exploitability: 96.23481941223145

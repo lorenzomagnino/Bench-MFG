@@ -1,0 +1,18 @@
+# @package algorithm
+# Damped Fixed Point algorithm configuration
+
+_target_: DampedFP
+
+dampedfp:
+  use_python: false
+  num_iterations: 150
+  convergence_tolerance: 1e-6
+  verbose: true
+  num_transition_steps: 20
+  early_stopping_enabled: false
+  initialization_type: "PSO_uniform"
+  init_policy_temp: 0.2  # temperature for initial policy conversion to logits (if init_solution provided)
+  #----- hyperparameters -----
+  lambda_schedule: "fictitious_play"  # "pure" | "damped" | "fictitious_play"
+  damped_constant: 0.2  # for "damped" variant
+

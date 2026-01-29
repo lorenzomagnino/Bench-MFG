@@ -1,0 +1,30 @@
+algorithm: OMD
+environment: MultipleEquilibriaGame
+best_models:
+- rank: 1
+  version: omd_sweep_lr0p0050_temp0p20
+  final_exploitability: 7.62939453125e-06
+- rank: 2
+  version: omd_sweep_lr0p0050_temp0p50
+  final_exploitability: 7.62939453125e-06
+- rank: 3
+  version: omd_sweep_lr0p0050_temp0p80
+  final_exploitability: 7.62939453125e-06
+- rank: 4
+  version: omd_sweep_lr0p0500_temp0p20
+  final_exploitability: 7.62939453125e-06
+- rank: 5
+  version: omd_sweep_lr0p0500_temp0p50
+  final_exploitability: 7.62939453125e-06
+- rank: 6
+  version: omd_sweep_lr0p0500_temp0p80
+  final_exploitability: 7.62939453125e-06
+- rank: 7
+  version: omd_sweep_lr0p5000_temp0p20
+  final_exploitability: 7.62939453125e-06
+- rank: 8
+  version: omd_sweep_lr0p5000_temp0p50
+  final_exploitability: 7.62939453125e-06
+- rank: 9
+  version: omd_sweep_lr0p5000_temp0p80
+  final_exploitability: 7.62939453125e-06

@@ -1,0 +1,12 @@
+algorithm: PI_smooth_policy_iteration
+environment: RockPaperScissors
+best_models:
+- rank: 1
+  version: smooth_pi_sweep_temp0p20_damped0p10
+  final_exploitability: 8.999702453613281
+- rank: 2
+  version: smooth_pi_sweep_temp0p20_damped0p50
+  final_exploitability: 8.999702453613281
+- rank: 3
+  version: smooth_pi_sweep_temp0p20_damped0p80
+  final_exploitability: 8.999702453613281

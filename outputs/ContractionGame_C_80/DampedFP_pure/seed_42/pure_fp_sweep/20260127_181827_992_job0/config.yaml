@@ -1,0 +1,80 @@
+initialization:
+  initialization_type: PSO_uniform
+  init_policy_temp: 0.2
+algorithm:
+  _target_: DampedFP
+  dampedfp:
+    use_python: false
+    num_iterations: 150
+    convergence_tolerance: 1.0e-06
+    verbose: true
+    num_transition_steps: 20
+    early_stopping_enabled: false
+    initialization_type: PSO_uniform
+    init_policy_temp: 0.2
+    lambda_schedule: pure
+    damped_constant: 0.2
+environment:
+  name: ContractionGame
+  grid:
+    is_grid: false
+  num_states: 2
+  num_actions: 2
+  num_noises: 1
+  horizon: 100
+  gamma: 0.9
+  dynamics:
+    is_noisy: false
+    noise_probabilities:
+    - 1.0
+  reward:
+    contraction_game:
+      switching_cost: 80.0
+      congestion_coefficient: 1.0
+  initial_distribution:
+    type: uniform
+    concentration_state: 0
+    concentration_ratio: 0.5
+experiment:
+  name: pure_fp_sweep
+  mode: 1
+  is_saved: true
+  description: Default Zero-order MFG experiment
+  run:
+    dir: outputs/${environment.name}/${algorithm._target_}/seed_${experiment.random_seed}/${experiment.name}
+  sweep:
+    dir: outputs/${environment.name}/${algorithm._target_}/seed_${experiment.random_seed}/${experiment.name}
+    subdir: ${hydra:job.num}
+  random_seed: 42
+logging:
+  level: INFO
+  wandb_enabled: false
+  wandb_project: zero-order-mfg
+  wandb_entity: bench-mfg
+  wandb_log_interval: 1
+visualization:
+  show_mean_field_evolution: true
+  show_policy_evolution: true
+  colors:
+    mean_field_1d_bar: salmon
+    mean_field_1d_background: floralwhite
+    mean_field_1d_grid: black
+    mean_field_2d_cmap: viridis
+    mean_field_2d_walls_cmap: Greys
+    mean_field_2d_grid: lightgray
+    mean_field_3d_cmap: viridis
+    policy_cmap: viridis
+    policy_grid: gray
+    figure_background: white
+    policy2d_action_cmaps:
+    - Greens
+    - Purples
+    - Oranges
+    - Blues
+    - Greys
+    policy2d_action_labels:
+    - up
+    - right
+    - down
+    - left
+    - stay

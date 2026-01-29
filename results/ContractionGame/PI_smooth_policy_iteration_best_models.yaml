@@ -1,0 +1,12 @@
+algorithm: PI_smooth_policy_iteration
+environment: ContractionGame
+best_models:
+- rank: 1
+  version: smooth_pi_sweep_temp0p20_damped0p10
+  final_exploitability: 0.0
+- rank: 2
+  version: smooth_pi_sweep_temp0p20_damped0p50
+  final_exploitability: 3.9998512268066406
+- rank: 3
+  version: smooth_pi_sweep_temp0p20_damped0p80
+  final_exploitability: 11.999553680419922

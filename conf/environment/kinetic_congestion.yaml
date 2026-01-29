@@ -1,0 +1,47 @@
+# @package environment
+# Kinetic Congestion / Crowd Dynamics - Dynamics-Coupled Mean Field Game configuration
+#
+# This is a Dynamics-Coupled MFG where movement success depends on the population
+# density at the target state, while rewards are decoupled from μ.
+#
+# In standard congestion games, high density is penalized via costs. In Kinetic
+# Congestion, high density physically prevents movement, mimicking fluid dynamics
+# or pedestrian crowding.
+#
+# State space: Grid positions (grid_height × grid_width)
+# Action space: {0: Up, 1: Right, 2: Down, 3: Left, 4: Stay}
+# Dynamics: p(y|x, a=y, μ) = 1 - min(1, φ(μ(y)))
+# Reward: r(x, a) = -I(x ≠ x_target) - c_move · I(a ≠ stay)
+
+name: "KineticCongestion"
+
+grid:
+  is_grid: true
+  dimension: [5, 5]  # [height, width]
+
+num_states: 25  # grid_height * grid_width (automatically computed)
+num_actions: 5  # Fixed: Up, Right, Down, Left, Stay
+num_noises: 100  # Used internally by KineticCongestion (precision_N = 100)
+horizon: 100    # Time horizon
+gamma: 0.90     # Discount factor (0 <= gamma <= 1)
+
+# Dynamics parameters
+# Note: noise_probabilities is not used - KineticCongestion uses internal precision_N=100
+dynamics:
+  is_noisy: true
+  noise_probabilities: []  # Not used - handled internally
+
+# Reward parameters
+reward:
+  kinetic_congestion:
+    target_state: 24  # Bottom-right corner (0-indexed: row=4, col=4)
+    movement_cost: 0.1  # Cost for moving (c_move > 0)
+    capacity_threshold: 0.18  # Maximum allowed density per cell (0 < threshold <= 1)
+
+# Initial distribution
+# Typically start with agents distributed across the grid
+initial_distribution:
+  type: "uniform"  # uniform, concentrated, custom
+  concentration_state: 0  # Not used if type = "uniform"
+  concentration_ratio: 0.8  # Not used if type = "uniform"
+

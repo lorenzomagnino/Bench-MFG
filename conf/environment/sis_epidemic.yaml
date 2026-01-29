@@ -1,0 +1,42 @@
+# @package environment
+# SIS Epidemic Model - Dynamics-Coupled Mean Field Game configuration
+#
+# This is a Dynamics-Coupled MFG where transitions depend on the population
+# distribution μ, while rewards are decoupled from μ.
+#
+# State space: {0: Susceptible (S), 1: Infected (I)}
+# Action space: Discretized social interaction intensity [0, 1]
+# Dynamics: p(I|S, a, μ) = β · a · μ(I), recovery I→S with probability ν
+# Reward: r(x, a) = a - C · I(x = I)
+
+name: "SISEpidemic"
+
+grid:
+  is_grid: false
+
+num_states: 2  # Fixed: Susceptible (0), Infected (1)
+num_actions: 5  # Discretized social interaction levels [0, 1]
+num_noises: 100  # Used internally by SISEpidemic (precision_N = 100)
+horizon: 100    # Time horizon
+gamma: 0.90     # Discount factor (0 <= gamma <= 1)
+
+# Dynamics parameters
+# Note: noise_probabilities is not used - SISEpidemic uses internal precision_N=100
+dynamics:
+  is_noisy: true
+  noise_probabilities: []  # Not used - handled internally
+
+# Reward parameters
+reward:
+  sis_epidemic:
+    beta: 0.8           # Transmission rate (β > 0)
+    nu: 0.1             # Recovery rate (0 < ν < 1)
+    cost_infection: 10.0 # Cost of being infected (C > 0)
+
+# Initial distribution
+# Typically start with mostly susceptible population
+initial_distribution:
+  type: "uniform"  # uniform, concentrated, custom
+  concentration_state: 0  # Start with agents in Susceptible state
+  concentration_ratio: 0.95  # 95% susceptible, 5% infected initially
+

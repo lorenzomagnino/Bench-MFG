@@ -1,0 +1,20 @@
+environment: NoInteractionChain
+best_version: pso_sweep_temp0p20_w0p70_c10p30_c21p20
+final_mean_exploitability: -4.1961669921875e-05
+all_versions:
+- version: pso_sweep_temp0p20_w0p70_c10p30_c21p20
+  final_mean_exploitability: -4.1961669921875e-05
+- version: pure_fp_sweep
+  final_mean_exploitability: 0.0
+- version: policy_iteration_sweep_temp0p20
+  final_mean_exploitability: 0.0
+- version: smooth_pi_sweep_temp0p20_damped0p10
+  final_mean_exploitability: 0.0
+- version: omd_sweep_lr0p5000_temp0p20
+  final_mean_exploitability: 0.0
+- version: damped_sweep_damped0p10
+  final_mean_exploitability: 0.0
+- version: fplay_sweep
+  final_mean_exploitability: 0.008570671081542969
+- version: boltzmann_pi_sweep_temp0p20
+  final_mean_exploitability: 0.3321495056152344

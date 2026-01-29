@@ -1,0 +1,30 @@
+algorithm: PI_boltzmann_policy_iteration
+environment: SISEpidemic
+best_models:
+- rank: 1
+  version: boltzmann_pi_sweep_temp0p50_damped0p10
+  final_exploitability: 14.34925663471222
+- rank: 2
+  version: boltzmann_pi_sweep_temp0p50_damped0p50
+  final_exploitability: 14.34925663471222
+- rank: 3
+  version: boltzmann_pi_sweep_temp0p50_damped0p80
+  final_exploitability: 14.34925663471222
+- rank: 4
+  version: boltzmann_pi_sweep_temp0p80_damped0p10
+  final_exploitability: 14.561378479003906
+- rank: 5
+  version: boltzmann_pi_sweep_temp0p80_damped0p50
+  final_exploitability: 14.561378479003906
+- rank: 6
+  version: boltzmann_pi_sweep_temp0p80_damped0p80
+  final_exploitability: 14.561378479003906
+- rank: 7
+  version: boltzmann_pi_sweep_temp0p20_damped0p10
+  final_exploitability: 33.92075729370117
+- rank: 8
+  version: boltzmann_pi_sweep_temp0p20_damped0p50
+  final_exploitability: 33.92075729370117
+- rank: 9
+  version: boltzmann_pi_sweep_temp0p20_damped0p80
+  final_exploitability: 33.92075729370117

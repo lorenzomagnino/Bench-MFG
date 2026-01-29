@@ -1,0 +1,13 @@
+# @package experiment
+# Experiment configuration
+
+name: "bench_mfg"
+mode: 1
+is_saved: True
+description: "Default Bench MFG experiment"
+run:
+  dir: outputs/${environment.name}/${algorithm._target_}/seed_${experiment.random_seed}/${experiment.name}
+sweep:
+  dir: outputs/${environment.name}/${algorithm._target_}/seed_${experiment.random_seed}/${experiment.name}
+  subdir: ${hydra:job.num}
+random_seed: 42 # 10, 42, 111, 1032

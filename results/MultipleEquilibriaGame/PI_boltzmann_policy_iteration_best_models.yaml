@@ -1,0 +1,30 @@
+algorithm: PI_boltzmann_policy_iteration
+environment: MultipleEquilibriaGame
+best_models:
+- rank: 1
+  version: boltzmann_pi_sweep_temp0p20_damped0p10
+  final_exploitability: 7.62939453125e-06
+- rank: 2
+  version: boltzmann_pi_sweep_temp0p20_damped0p50
+  final_exploitability: 7.62939453125e-06
+- rank: 3
+  version: boltzmann_pi_sweep_temp0p20_damped0p80
+  final_exploitability: 7.62939453125e-06
+- rank: 4
+  version: boltzmann_pi_sweep_temp0p50_damped0p10
+  final_exploitability: 7.62939453125e-06
+- rank: 5
+  version: boltzmann_pi_sweep_temp0p50_damped0p50
+  final_exploitability: 7.62939453125e-06
+- rank: 6
+  version: boltzmann_pi_sweep_temp0p50_damped0p80
+  final_exploitability: 7.62939453125e-06
+- rank: 7
+  version: boltzmann_pi_sweep_temp0p80_damped0p10
+  final_exploitability: 7.62939453125e-06
+- rank: 8
+  version: boltzmann_pi_sweep_temp0p80_damped0p50
+  final_exploitability: 7.62939453125e-06
+- rank: 9
+  version: boltzmann_pi_sweep_temp0p80_damped0p80
+  final_exploitability: 7.62939453125e-06

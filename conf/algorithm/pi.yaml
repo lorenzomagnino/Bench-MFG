@@ -1,0 +1,15 @@
+# @package algorithm
+# Policy Iteration algorithm configuration
+_target_: PI
+
+pi:
+  use_python: false
+  num_iterations: 150
+  verbose: true
+  early_stopping_enabled: false
+  initialization_type: "PSO_uniform"
+  init_policy_temp: 0.2  # temperature for initial policy creation (all variants)
+  variant: "policy_iteration"  # "policy_iteration" | "smooth_policy_iteration" | "boltzmann_policy_iteration"
+  #----- hyperparameters -----
+  temperature: 0.2  # temperature for boltzmann_policy_iteration (used during algorithm iterations)
+  damped_constant: 0.4 # null | float.   null for decreasing damping with iteration

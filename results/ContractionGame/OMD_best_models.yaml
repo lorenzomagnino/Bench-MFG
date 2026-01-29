@@ -1,0 +1,30 @@
+algorithm: OMD
+environment: ContractionGame
+best_models:
+- rank: 1
+  version: omd_sweep_lr0p0500_temp0p20
+  final_exploitability: 0.0
+- rank: 2
+  version: omd_sweep_lr0p0500_temp0p50
+  final_exploitability: 0.0
+- rank: 3
+  version: omd_sweep_lr0p0500_temp0p80
+  final_exploitability: 0.0
+- rank: 4
+  version: omd_sweep_lr0p5000_temp0p80
+  final_exploitability: 0.0
+- rank: 5
+  version: omd_sweep_lr0p0050_temp0p20
+  final_exploitability: 0.011053085327148438
+- rank: 6
+  version: omd_sweep_lr0p0050_temp0p50
+  final_exploitability: 0.9484872817993164
+- rank: 7
+  version: omd_sweep_lr0p0050_temp0p80
+  final_exploitability: 2.6592071056365967
+- rank: 8
+  version: omd_sweep_lr0p5000_temp0p50
+  final_exploitability: 3.9998512268066406
+- rank: 9
+  version: omd_sweep_lr0p5000_temp0p20
+  final_exploitability: 11.999553680419922

@@ -1,0 +1,9 @@
+# @package logging
+# Logging configuration
+
+
+level: "INFO"
+wandb_enabled: false
+wandb_project: "project_name"
+wandb_entity: "bench-mfg"
+wandb_log_interval: 1

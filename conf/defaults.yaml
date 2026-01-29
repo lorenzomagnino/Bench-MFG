@@ -1,0 +1,37 @@
+# @package _global_
+# Main configuration file for Zero-order MFG experiments
+
+defaults:
+  - _self_
+# ----- ALGORITHMS -----
+  # - algorithm/damped_fixed_point
+  # - algorithm/pi
+  # - algorithm/omd
+  - algorithm/pso
+# ----- ENVIRONMENTS -----
+  # - environment/no_interaction_game
+  # - environment/lasry_lions_chain
+  # - environment/four_rooms_obstacles
+  # - environment/rock_paper_scissors
+  # - environment/sis_epidemic
+  # - environment/kinetic_congestion
+  # - environment/mf_garnet
+  - environment/multiple_equilibria
+  # - environment/contraction_game
+# ----- UTILS -----
+  - experiment/experiment
+  - logging/logging
+  - visualization/visualization
+
+initialization:
+  initialization_type: "PSO_uniform"
+  init_policy_temp: 0.2
+
+hydra:
+  run:
+    dir: .hydra_logs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: .hydra_logs/${now:%Y-%m-%d}
+    subdir: ${now:%H-%M-%S}_${hydra.job.num}
+  job:
+    name: mfg_experiment

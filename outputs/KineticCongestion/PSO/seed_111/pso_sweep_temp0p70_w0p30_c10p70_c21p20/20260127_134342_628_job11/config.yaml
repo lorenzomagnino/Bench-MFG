@@ -1,0 +1,82 @@
+initialization:
+  initialization_type: PSO_uniform
+  init_policy_temp: 0.2
+algorithm:
+  _target_: PSO
+  pso:
+    num_particles: 200
+    num_iterations: 150
+    init_policy_temp: 0.2
+    policy_type: boltzmann
+    initialization_type: PSO_uniform
+    temperature: 0.7
+    w: 0.3
+    c1: 0.7
+    c2: 1.2
+environment:
+  name: KineticCongestion
+  grid:
+    is_grid: true
+    dimension:
+    - 5
+    - 5
+  num_states: 25
+  num_actions: 5
+  num_noises: 100
+  horizon: 100
+  gamma: 0.9
+  dynamics:
+    is_noisy: true
+    noise_probabilities: []
+  reward:
+    kinetic_congestion:
+      target_state: 24
+      movement_cost: 0.1
+      capacity_threshold: 0.18
+  initial_distribution:
+    type: uniform
+    concentration_state: 0
+    concentration_ratio: 0.8
+experiment:
+  name: pso_sweep
+  mode: 1
+  is_saved: true
+  description: Default Zero-order MFG experiment
+  run:
+    dir: outputs/${environment.name}/${algorithm._target_}/seed_${experiment.random_seed}/${experiment.name}
+  sweep:
+    dir: outputs/${environment.name}/${algorithm._target_}/seed_${experiment.random_seed}/${experiment.name}
+    subdir: ${hydra:job.num}
+  random_seed: 111
+logging:
+  level: INFO
+  wandb_enabled: false
+  wandb_project: zero-order-mfg
+  wandb_entity: bench-mfg
+  wandb_log_interval: 1
+visualization:
+  show_mean_field_evolution: true
+  show_policy_evolution: true
+  colors:
+    mean_field_1d_bar: salmon
+    mean_field_1d_background: floralwhite
+    mean_field_1d_grid: black
+    mean_field_2d_cmap: viridis
+    mean_field_2d_walls_cmap: Greys
+    mean_field_2d_grid: lightgray
+    mean_field_3d_cmap: viridis
+    policy_cmap: viridis
+    policy_grid: gray
+    figure_background: white
+    policy2d_action_cmaps:
+    - Greens
+    - Purples
+    - Oranges
+    - Blues
+    - Greys
+    policy2d_action_labels:
+    - up
+    - right
+    - down
+    - left
+    - stay

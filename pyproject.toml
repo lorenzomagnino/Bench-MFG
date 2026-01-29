@@ -1,44 +1,145 @@
-[project]
-name = "roboml-research-template"
-version = "0.1.0"
-description = "A lightweight, opinionated template for running machine learning and robotics research projects"
-readme = "README.md"
-requires-python = ">=3.8"
-dependencies = [
-    "hydra-core>=1.3.0",
-    "wandb>=0.15.0",
-    "torch>=2.0.0",
-    "omegaconf>=2.3.0",
-    "rich>=13.0.0",
-]
-
-[project.optional-dependencies]
-dev = [
-    "ruff>=0.1.0",
-    "black>=23.0.0",
-    "pytest>=7.0.0",
-    "pre-commit>=3.0.0",
-    # "mypy>=1.0.0",  # Commented out for now
-]
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[project]
+name = "bench-mfg"
+version = "0.1.0"
+description = "Benchmark methods for Mean Field Games"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Author", email = "author@example.com"},
+]
+maintainers = [
+    {name = "Author", email = "author@example.com"},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+keywords = ["mean-field-games", "optimization", "machine-learning", "reinforcement-learning"]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.21.0",
+    "scipy>=1.7.0",
+    "matplotlib>=3.5.0",
+    "tqdm>=4.62.0",
+    "cma>=3.2.0",
+    "colorlog>=6.6.0",
+    "hydra-core>=1.3.0",
+    "jax>=0.4.13",
+    "robo-goggles[jax,wandb]>=0.1.8",
+    "wandb>=0.23.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=22.0.0",
+    "ruff>=0.1.0",
+    "pre-commit>=2.20.0",
+]
+docs = [
+    "sphinx>=5.0.0",
+    "sphinx-rtd-theme>=1.0.0",
+]
+jupyter = [
+    "jupyter>=1.0.0",
+    "ipykernel>=6.0.0",
+    "ipywidgets>=8.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/bench-mfg"
+Repository = "https://github.com/yourusername/bench-mfg.git"
+Issues = "https://github.com/yourusername/bench-mfg/issues"
+Documentation = "https://bench-mfg.readthedocs.io/"
+
+[project.scripts]
+mfg-train = "main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["envs", "learner", "utility"]
+include = [
+    "args_parser.py",
+    "examples/*.py",
+]
+
 [tool.ruff]
-line-length = 100
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+# Same as Black.
+line-length = 88
+indent-width = 4
+
+# Assume Python 3.8+
 target-version = "py38"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W"]
+# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
+# Also enable:
+# - isort (`I`) for import sorting
+# - pyupgrade (`UP`) for Python syntax upgrades
+# - flake8-bugbear (`B`) for likely bugs and design problems
+# - flake8-simplify (`SIM`) for simplification suggestions
+# - flake8-comprehensions (`C4`) for comprehension improvements
+select = ["E4", "E7", "E9", "F", "I", "UP", "B", "SIM", "C4"]
+
 ignore = []
 
-[tool.black]
-line-length = 100
-target-version = ["py38"]
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
 
-# [tool.mypy]
-# python_version = "3.8"
-# warn_return_any = true
-# warn_unused_configs = true
-# disallow_untyped_defs = false
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+# Sort imports alphabetically within their sections
+force-sort-within-sections = true
+# Combine multiple `from foo import a, b, c` statements with the same source
+combine-as-imports = true
