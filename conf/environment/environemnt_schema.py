@@ -1,4 +1,4 @@
-"""Structured configuration schemas for Zero-order MFG project using Hydra."""
+"""Structured configuration schemas for Bench-MFG project using Hydra."""
 
 from dataclasses import dataclass, field
 from typing import List

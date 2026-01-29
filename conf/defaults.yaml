@@ -1,5 +1,5 @@
 # @package _global_
-# Main configuration file for Zero-order MFG experiments
+# Main configuration file for Bench-MFG experiments
 
 defaults:
   - _self_

@@ -1,4 +1,4 @@
-"""Wandb logging utilities for Zero-order MFG experiments."""
+"""Wandb logging utilities for Bench-MFG experiments."""
 
 import logging
 from pathlib import Path

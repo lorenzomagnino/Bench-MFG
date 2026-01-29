@@ -1,5 +1,5 @@
 """
-Main entry point for Zero-order MFG experiments using Hydra for configuration management.
+Main entry point for Bench-MFG experiments using Hydra for configuration management.
 """
 
 import logging

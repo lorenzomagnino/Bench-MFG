@@ -1,4 +1,4 @@
-"""Structured configuration schemas for Zero-order MFG project using Hydra."""
+"""Structured configuration schemas for Bench-MFG project using Hydra."""
 
 from dataclasses import dataclass, field
 from typing import Optional
@@ -65,7 +65,7 @@ class ExperimentConfig:
     mode: int = 1
     is_saved: bool = False
     random_seed: int = 42
-    description: str = "Default configuration for Zero-order MFG experiments"
+    description: str = "Default configuration for Bench-MFG experiments"
     run: RunConfig = field(default_factory=RunConfig)
     sweep: SweepConfig = field(default_factory=SweepConfig)
 
@@ -76,7 +76,7 @@ class LoggingConfig:
 
     level: str = "INFO"
     wandb_enabled: bool = False
-    wandb_project: str = "zero-order-mfg"
+    wandb_project: str = "bench-mfg"
     wandb_entity: Optional[str] = None
     wandb_log_interval: int = 1  # Log every N iterations (1 = every iteration)
 
@@ -101,8 +101,8 @@ class InitializationConfig:
 @dataclass
 class MFGConfig:
     """
-    Main configuration for Zero-order MFG experiments.
-    This configuration class aggregates all other configuration classes and provides a unified interface for the Zero-order MFG project.
+    Main configuration for Bench-MFG experiments.
+    This configuration class aggregates all other configuration classes and provides a unified interface for the Bench-MFG project.
     Args:
         environment: Environment configuration.
         algorithm: Algorithm configuration.
