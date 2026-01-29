@@ -8,7 +8,7 @@ Benchmark methods for Mean Field Games (MFG).
 
 <img src="cover.png" width="500" alt="Cover">
 
-## Quick Start
+## Easy Start
 
 ```bash
 # Setup environment
@@ -17,13 +17,13 @@ source .venv/bin/activate
 uv pip install -e .
 ```
 ### Run experiment
-Modify the `config/defaults.yaml` selecting algorithm and environment. Run:
+Modify the `config/defaults.yaml` selecting algorithm and environment. Then run:
 ```bash
 python main.py
 ```
 
 ## Running Experiments
-See [EXPERIMENTS.md](EXPERIMENTS.md) for detailed instructions on how to run experiments.
+See [EXPERIMENTS.md](EXPERIMENTS.md) for detailed instructions on how to run experiments in batch.
 
 ### Configuration
 
