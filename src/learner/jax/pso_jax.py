@@ -376,9 +376,6 @@ def update(
     pso_components.best_positions[improved_indices] = pso_components.positions[
         improved_indices
     ]
-    pso_components.best_values_by_particles[improved_indices] = (
-        pso_components.best_values_by_particles[improved_indices]
-    )
     iteration_best_fitness = np.min(pso_components.best_values_by_particles)
     if iteration_best_fitness < pso_components.swarm_best_value:
         pso_components.swarm_best_position = pso_components.best_positions[
@@ -488,7 +485,7 @@ def plot_logits_evolution(state, positions_evolution, N_actions):
             ax.scatter(
                 [action] * len(values),
                 values,
-                crowd_penalty_coefficient=0.5,
+                alpha=0.5,
                 label=f"Action {action - 1}" if iteration == 0 else None,
             )
 

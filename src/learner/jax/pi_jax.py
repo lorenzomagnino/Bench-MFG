@@ -86,10 +86,6 @@ class PI_jax:
         self.damped_constant = damped_constant
         self.jax_device = jax_device if jax_device is not None else jax.devices("cpu")[0]
 
-    def _put(self, arr):
-        """Place a numpy/JAX array on the configured JAX device."""
-        return jax.device_put(arr, self.jax_device)
-
         if self.variant not in (
             "policy_iteration",
             "smooth_policy_iteration",
@@ -97,7 +93,7 @@ class PI_jax:
         ):
             raise ValueError(f"Unknown PI variant: {self.variant}")
 
-        if (  # noqa: SIM102
+        if (
             self.variant == "smooth_policy_iteration"
             and self.damped_constant is not None
         ):
@@ -105,6 +101,10 @@ class PI_jax:
                 raise ValueError(
                     f"damped_constant must be in (0,1], got {self.damped_constant}"
                 )
+
+    def _put(self, arr):
+        """Place a numpy/JAX array on the configured JAX device."""
+        return jax.device_put(arr, self.jax_device)
 
     def initialize(self) -> tuple[PIComponents, list]:
         """Initialize policy iteration components."""
