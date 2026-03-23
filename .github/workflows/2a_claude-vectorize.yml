@@ -37,6 +37,7 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           show_full_output: true
+          max_turns: 20
           prompt: |
             You are a performance engineer. Target file: "${{ github.event.inputs.target_file || 'all files in /src/' }}"
 
