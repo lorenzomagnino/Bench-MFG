@@ -1,0 +1,106 @@
+name: ⚡ Claude Performance Optimizer
+
+on:
+  # schedule:
+  #   - cron: '0 9 1/21 * *'  # Every 3 weeks, offset from cleanup
+  workflow_dispatch:
+    inputs:
+      target_file:
+        description: 'Specific file to optimize (leave empty for full repo scan)'
+        required: false
+        default: ''
+
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install jax jaxlib numpy torch pytest
+          pip install -r requirements.txt || true
+
+      - name: Detect CUDA availability
+        id: cuda
+        run: |
+          if python -c "import torch; print(torch.cuda.is_available())" | grep -q True; then
+            echo "available=true" >> $GITHUB_OUTPUT
+          else
+            echo "available=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run Claude Performance Optimization Agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            You are a performance engineering expert. Your job is to deeply optimize this Python codebase.
+            CUDA available in this runner: ${{ steps.cuda.outputs.available }}
+            Target file (if specified): "${{ github.event.inputs.target_file }}"
+
+            Work through the following steps:
+
+            ## 1. Scan & Classify
+            Read all files in /src/. For each file, classify operations as:
+            - Pure Python loops → candidate for NumPy/JAX vectorization
+            - Sequential data processing → candidate for multiprocessing/threading
+            - Neural network layers → check for JAX @jit, vmap, pmap opportunities
+            - I/O bound work → candidate for asyncio
+
+            ## 2. Vectorization
+            - Replace Python loops over arrays with NumPy or JAX vectorized ops
+            - Replace manual reductions (sum, max, mean) with their NumPy equivalents
+            - Prefer `jnp` over `np` where JAX is already in the dependency tree
+
+            ## 3. JAX / JIT
+            - Wrap pure-functional compute kernels with `@jax.jit`
+            - Use `jax.vmap` for per-sample operations instead of Python loops
+            - Use `jax.lax.scan` instead of Python for-loops over sequences
+            - Ensure no Python side-effects inside jitted functions
+            - Add `jax.block_until_ready()` in benchmarks to avoid async timing bugs
+
+            ## 4. CPU / GPU Portability
+            - All device placement must be driven by a config flag (e.g., `cfg.device = "cuda" | "cpu"`)
+            - For PyTorch code: use `.to(device)` consistently, never hardcode `.cuda()`
+            - For JAX code: use `jax.devices()` and pass explicit device to `jax.device_put()`
+            - Dockerfile must expose both CPU and GPU entry points
+
+            ## 5. Parallelism
+            - CPU-bound loops over datasets → `multiprocessing.Pool` or `concurrent.futures`
+            - Use `torch.utils.data.DataLoader` with `num_workers > 0` for data pipelines
+            - For JAX multi-device: add `jax.pmap` where batch can be sharded across devices
+
+            ## 6. Network Architecture Review
+            Review every neural network definition:
+            - Ensure layer dimensions are consistent end-to-end
+            - Check for redundant activations or unnecessary transposes
+            - Verify weight initialization is appropriate (kaiming for ReLU, xavier for tanh)
+            - Confirm forward pass is differentiable and jit-compatible
+            - Run a single forward + backward pass smoke test for each architecture
+
+            ## 7. Smoke Tests
+            For every optimized function, run a small correctness test:
+            - Compare output of optimized version vs original on a small input
+            - Assert shapes and values match within tolerance (1e-5)
+            - Time both versions and confirm speedup > 1x
+            - Run: `pytest tests/ -v` and fix any regressions
+
+            ## 8. Open a Pull Request
+            - Branch name: `perf/claude-optimize-<YYYY-MM-DD>`
+            - PR title: "⚡ perf: automated performance optimization"
+            - PR body must include a table:
+              | File | Change | Estimated Speedup |
+              |------|--------|-------------------|
+              | ...  | ...    | ...               |

@@ -1,0 +1,86 @@
+name: 🧹 Claude Code Cleanup
+
+on:
+  pull_request:
+  # schedule:
+  #   - cron: '0 9 1/21 * *'  # Every 3 weeks (every 21st day starting from day 1)
+  workflow_dispatch:         # Allow manual trigger
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pre-commit hydra-core pytest
+          pip install -r requirements.txt || true
+          pre-commit install
+
+      - name: Run Claude Code Cleanup Agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            You are a senior Python engineer doing a code quality pass on this repository.
+            Work through the following steps carefully and in order:
+
+            ## 1. Project Structure
+            Ensure the repo follows this layout:
+            ```
+            /src/         → all source code (no loose .py files at root)
+            /tests/       → mirrors /src/ structure, uses pytest
+            /config/      → Hydra .yaml config files, clearly named by concern
+            Dockerfile    → multi-stage build, with CPU/GPU variants if needed
+            .pre-commit-config.yaml
+            requirements.txt (or pyproject.toml)
+            ```
+            Create any missing directories or scaffold files if absent.
+
+            ## 2. Code Quality — KISS + PEP8
+            - Apply PEP8 everywhere (naming, spacing, line length ≤ 88)
+            - Remove dead code, commented-out blocks, unused imports
+            - Simplify overly complex functions (KISS principle)
+            - Add or fix docstrings (Google style)
+            - Prefer clear variable names over clever one-liners
+            - Use ruff for formatting
+            - Check typing with mypy
+            - Use helper functions to reduce code duplication
+
+            ## 3. Hydra Config
+            - All hardcoded values (paths, hyperparameters, seeds, device) must move to /config/
+            - Config files should be split by concern: model.yaml, training.yaml, data.yaml, etc.
+            - Main entry point must use @hydra.main decorator
+
+            ## 4. Docker
+            - Ensure Dockerfile exists with a clean multi-stage build
+            - Add a docker-compose.yml if multiple services are needed
+            - Pin base image versions
+
+            ## 5. Pre-commit
+            - Run: `pre-commit run --all-files`
+            - Fix ALL reported issues (formatting, linting, trailing whitespace, etc.)
+            - Re-run until pre-commit exits clean
+
+            ## 6. Tests
+            - Run: `pytest tests/ -v`
+            - Fix any failing tests
+            - If a test is broken due to refactoring, update it to match new signatures
+
+            ## 7. Open a Pull Request
+            - Branch name: `chore/claude-cleanup-<YYYY-MM-DD>`
+            - PR title: "🧹 chore: automated code cleanup"
+            - PR body: bullet list of every change made
+

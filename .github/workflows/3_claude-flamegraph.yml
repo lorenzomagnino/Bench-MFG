@@ -1,0 +1,153 @@
+name: 🔥 Claude Flamegraph Profiler
+
+on:
+  # schedule:
+  #   - cron: '0 9 10/21 * *'  # Every 3 weeks, offset by 10 days from cleanup
+  workflow_dispatch:
+    inputs:
+      script:
+        description: 'Script to profile (relative to repo root)'
+        required: false
+        default: 'src/main.py'
+      duration:
+        description: 'Profiling duration in seconds'
+        required: false
+        default: '30'
+
+jobs:
+  flamegraph:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install profiling tools
+        run: |
+          pip install pyinstrument py-spy scalene memray
+          pip install -r requirements.txt || true
+          sudo apt-get install -y linux-tools-common linux-tools-generic || true
+
+      - name: Run profiling suite
+        run: |
+          TARGET="${{ github.event.inputs.script || 'src/main.py' }}"
+          mkdir -p profiling_output
+
+          echo "▶ pyinstrument (wall time)"
+          python -m pyinstrument --renderer html -o profiling_output/pyinstrument.html $TARGET || true
+
+          echo "▶ py-spy flamegraph (sampling profiler)"
+          sudo py-spy record \
+            --output profiling_output/flamegraph.svg \
+            --format speedscope \
+            --duration ${{ github.event.inputs.duration || '30' }} \
+            -- python $TARGET || true
+
+          echo "▶ scalene (CPU + GPU + memory)"
+          python -m scalene \
+            --html \
+            --outfile profiling_output/scalene_report.html \
+            $TARGET || true
+
+          echo "▶ memray (memory)"
+          python -m memray run \
+            -o profiling_output/memray.bin \
+            $TARGET || true
+          python -m memray flamegraph \
+            profiling_output/memray.bin \
+            -o profiling_output/memray_flamegraph.html || true
+
+      - name: Upload profiling artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: profiling-output
+          path: profiling_output/
+
+      - name: Run Claude Profiling Analysis Agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            You are a performance analysis expert. Profiling data has just been collected for this codebase.
+            The profiled script was: "${{ github.event.inputs.script || 'src/main.py' }}"
+
+            Profiling artifacts are in: `./profiling_output/`
+            - `flamegraph.svg`        → py-spy speedscope flamegraph
+            - `pyinstrument.html`     → wall-time call tree
+            - `scalene_report.html`   → CPU/memory line-by-line breakdown
+            - `memray_flamegraph.html`→ memory allocation flamegraph
+
+            ## Your tasks:
+
+            ### 1. Read & Analyse the Source
+            - Read the profiled script and all files it imports from /src/
+            - Read `profiling_output/scalene_report.html` for hot lines
+            - Read `profiling_output/pyinstrument.html` for slow call stacks
+
+            ### 2. Identify Bottlenecks
+            Find the top 5 bottlenecks. For each one, document:
+            - **Location**: file + line number + function name
+            - **Cost**: % of total CPU time or memory
+            - **Root cause**: e.g. "Python loop over 10k items that could be vectorized",
+              "Repeated model forward passes without batching", "Redundant disk reads"
+            - **Severity**: Critical / High / Medium / Low
+
+            ### 3. Memory Analysis
+            - Identify the top 3 memory allocations by size
+            - Flag any memory leaks (allocations that grow unbounded)
+            - Identify large tensors that are kept in memory longer than needed
+
+            ### 4. Write the Report
+            Create a file: `profiling_output/PERFORMANCE_REPORT.md`
+
+            The report must have these sections:
+            ```markdown
+            # Performance Report — <script name> — <date>
+
+            ## Executive Summary
+            2–3 sentences: overall health, biggest single win available.
+
+            ## Flamegraph Interpretation
+            Plain-English explanation of what the flamegraph shows.
+            Include a table of the top 5 hot functions with their % CPU time.
+
+            ## Top Bottlenecks
+            For each bottleneck:
+            ### [#N] <function_name> in <file>:<line>
+            - **Cost**: X% CPU / Y MB
+            - **Root cause**: ...
+            - **Recommended fix**: concrete code suggestion (show before/after if possible)
+            - **Estimated speedup**: Nx (conservative) — Nx (optimistic)
+
+            ## Memory Report
+            - Peak memory usage: X MB
+            - Top allocations: table with location / size / lifetime
+            - Leaks detected: yes/no + details
+
+            ## Recommended Action Plan
+            Ordered list of fixes by impact/effort ratio:
+            1. [Quick win] ...
+            2. [Medium effort] ...
+            3. [Large refactor] ...
+
+            ## Profiling Commands (reproduce locally)
+            Shell commands to re-run each profiler locally.
+            ```
+
+            ### 5. Open a Pull Request (MANDATORY)
+            - This step is required every run where files were generated or changed.
+            - Create a new branch and open a PR to the default branch.
+            - Commit only `profiling_output/PERFORMANCE_REPORT.md` and the `.svg`/`.html` files
+            - Branch: `perf/flamegraph-report-<YYYY-MM-DD>`
+            - PR title: "🔥 perf: flamegraph report — <script name>"
+            - PR body: paste the Executive Summary section from the report
