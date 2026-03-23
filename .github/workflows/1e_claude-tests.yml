@@ -1,0 +1,62 @@
+name: 🧪 Claude Tests
+
+on:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pytest pytest-cov
+          pip install -r requirements.txt || true
+
+      - name: Run Claude Tests Agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          show_full_output: true
+          prompt: |
+            You are a senior Python engineer. Your only task is making the test suite pass.
+
+            ## Task: Tests
+            - Run `pytest tests/ -v` and record all failures
+            - Fix failing tests — update signatures if they broke due to refactoring
+            - Do not delete tests; fix them or mark them with `pytest.mark.skip` with a reason
+            - If `tests/` is missing or empty, scaffold basic smoke tests for the main entry point
+
+            ## Report
+            Before opening the PR, write a report to `reports/tests-report.md`:
+            ```markdown
+            # Tests Report — <date>
+
+            ## What Was Done
+            - bullet list of every change made
+
+            ## Problems Encountered
+            - describe every failing test found and how it was resolved
+
+            ## Declarations
+            - tests skipped and why, coverage gaps noticed, edge cases flagged
+            ```
+
+            ## Pull Request
+            - Branch: `chore/tests-<YYYY-MM-DD>`
+            - PR title: "🧪 chore: fix test suite"
+            - PR body: paste the report summary

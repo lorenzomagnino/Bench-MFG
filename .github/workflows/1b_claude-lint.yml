@@ -1,0 +1,65 @@
+name: 🧹 Claude Lint & Format
+
+on:
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pre-commit ruff mypy
+          pip install -r requirements.txt || true
+          pre-commit install
+
+      - name: Run Claude Lint Agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          show_full_output: true
+          prompt: |
+            You are a senior Python engineer. Your only task is code quality and formatting.
+
+            ## Task: Lint & Format
+            - Run `ruff format .` and `ruff check --fix .` — fix all reported issues
+            - Run `mypy src/` — fix type errors where straightforward
+            - Apply PEP8: naming, spacing, line length ≤ 88
+            - Remove dead code, commented-out blocks, unused imports
+            - Add or fix docstrings (Google style) on public functions/classes
+            - Run `pre-commit run --all-files` — re-run until it exits clean
+
+            ## Report
+            Before opening the PR, write a report to `reports/lint-report.md`:
+            ```markdown
+            # Lint & Format Report — <date>
+
+            ## What Was Done
+            - bullet list of every change made
+
+            ## Problems Encountered
+            - describe any issue found and how it was resolved
+
+            ## Declarations
+            - anything notable (ignored errors, skipped files, mypy issues left open)
+            ```
+
+            ## Pull Request
+            - Branch: `chore/lint-<YYYY-MM-DD>`
+            - PR title: "🧹 chore: lint and format"
+            - PR body: paste the report summary

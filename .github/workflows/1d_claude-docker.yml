@@ -1,0 +1,53 @@
+name: 🐳 Claude Docker
+
+on:
+  workflow_dispatch:
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude Docker Agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          show_full_output: true
+          prompt: |
+            You are a senior Python engineer. Your only task is Docker configuration.
+
+            ## Task: Docker
+            - Ensure a `Dockerfile` exists with a clean multi-stage build
+            - Pin base image versions (no `latest` tags)
+            - Add CPU and GPU variants if the codebase uses torch or jax
+            - Add a `docker-compose.yml` if multiple services are needed
+            - Ensure the container installs dependencies from `requirements.txt` or `pyproject.toml`
+
+            ## Report
+            Before opening the PR, write a report to `reports/docker-report.md`:
+            ```markdown
+            # Docker Report — <date>
+
+            ## What Was Done
+            - bullet list of every change made
+
+            ## Problems Encountered
+            - describe any issue found and how it was resolved
+
+            ## Declarations
+            - base images chosen, build stages explained, GPU support notes
+            ```
+
+            ## Pull Request
+            - Branch: `chore/docker-<YYYY-MM-DD>`
+            - PR title: "🐳 chore: docker setup"
+            - PR body: paste the report summary

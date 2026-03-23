@@ -1,0 +1,62 @@
+name: ⚙️ Claude Hydra Config
+
+on:
+  workflow_dispatch:
+
+jobs:
+  config:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install hydra-core omegaconf
+          pip install -r requirements.txt || true
+
+      - name: Run Claude Config Agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          show_full_output: true
+          prompt: |
+            You are a senior Python engineer. Your only task is Hydra configuration hygiene.
+
+            ## Task: Hydra Config
+            - Move all hardcoded values (paths, hyperparameters, seeds, device) to `/config/`
+            - Split config files by concern: `model.yaml`, `training.yaml`, `data.yaml`, etc.
+            - Ensure the main entry point uses `@hydra.main` decorator
+            - Verify config schemas match usage in code (no missing or misnamed keys)
+
+            ## Report
+            Before opening the PR, write a report to `reports/config-report.md`:
+            ```markdown
+            # Hydra Config Report — <date>
+
+            ## What Was Done
+            - bullet list of every change made
+
+            ## Problems Encountered
+            - describe any issue found and how it was resolved
+
+            ## Declarations
+            - hardcoded values that were moved, new config keys added, assumptions made
+            ```
+
+            ## Pull Request
+            - Branch: `chore/config-<YYYY-MM-DD>`
+            - PR title: "⚙️ chore: hydra config cleanup"
+            - PR body: paste the report summary

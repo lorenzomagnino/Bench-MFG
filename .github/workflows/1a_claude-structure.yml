@@ -1,0 +1,70 @@
+name: 🗂️ Claude Structure Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  structure:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt || true
+
+      - name: Run Claude Structure Agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          show_full_output: true
+          prompt: |
+            You are a senior Python engineer. Your only task is to verify and fix the project structure.
+
+            ## Task: Project Structure
+            Ensure the repo follows this layout:
+            ```
+            /src/         → all source code (no loose .py files at root)
+            /tests/       → mirrors /src/ structure, uses pytest
+            /config/      → Hydra .yaml config files, clearly named by concern
+            Dockerfile    → must exist
+            .pre-commit-config.yaml → must exist
+            requirements.txt (or pyproject.toml) → must exist
+            ```
+            - Create any missing directories
+            - Add missing `__init__.py` files
+            - Move misplaced files to their correct location
+            - Fix any typos in file or directory names
+
+            ## Report
+            Before opening the PR, write a report to `reports/structure-report.md`:
+            ```markdown
+            # Structure Report — <date>
+
+            ## What Was Done
+            - bullet list of every structural change made
+
+            ## Problems Encountered
+            - describe any issue found and how it was resolved
+
+            ## Declarations
+            - anything notable (missing files, ambiguous locations, assumptions made)
+            ```
+
+            ## Pull Request
+            - Branch: `chore/structure-<YYYY-MM-DD>`
+            - PR title: "🗂️ chore: project structure fix"
+            - PR body: paste the report summary
