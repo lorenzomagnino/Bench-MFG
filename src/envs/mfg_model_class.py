@@ -81,6 +81,33 @@ class MFGStationary:
         """
         pass
 
+    def _build_transition_matrix(self, mean_field: np.ndarray) -> np.ndarray:
+        """Build T[s, a, n] -> next_state array for a given mean field."""
+        S, A, N = self.N_states, self.N_actions, self.N_noises
+        return np.array(
+            [
+                [
+                    [
+                        self.transition(mean_field=mean_field, state=s, action=a, noise=n)
+                        for n in range(N)
+                    ]
+                    for a in range(A)
+                ]
+                for s in range(S)
+            ],
+            dtype=np.intp,
+        )
+
+    def _build_reward_matrix(self, mean_field: np.ndarray) -> np.ndarray:
+        """Build R[s, a] array for a given mean field."""
+        S, A = self.N_states, self.N_actions
+        return np.array(
+            [
+                [self.reward(mean_field=mean_field, state=s, action=a) for a in range(A)]
+                for s in range(S)
+            ]
+        )
+
     def mean_field_by_transition_kernel(
         self, policy: np.ndarray, num_transition_steps: int = 50
     ) -> np.ndarray:
@@ -94,21 +121,20 @@ class MFGStationary:
         Returns:
         array: New state distribution.
         """
+        S = self.N_states
         mean_field_copy = self.stationary_mean_field.copy()
+        new_state_dist = mean_field_copy
         for _k in range(num_transition_steps):
-            new_state_dist: np.ndarray = np.zeros(self.N_states)
-            for s in range(self.N_states):
-                for a in range(self.N_actions):
-                    for n in range(self.N_noises):
-                        new_state = self.transition(
-                            mean_field=mean_field_copy,
-                            state=s,
-                            action=a,
-                            noise=n,
-                        )
-                        new_state_dist[new_state] += (
-                            policy[s, a] * mean_field_copy[s] * self.noise_prob[n]
-                        )
+            # Precompute T[s,a,n] for current mean field, then scatter-add
+            T = self._build_transition_matrix(mean_field_copy)
+            # probs[s,a,n] = policy[s,a] * mf[s] * noise_prob[n]
+            probs = (
+                policy[:, :, None]
+                * mean_field_copy[:, None, None]
+                * self.noise_prob[None, None, :]
+            )
+            new_state_dist = np.zeros(S)
+            np.add.at(new_state_dist, T, probs)
             new_state_dist = new_state_dist / new_state_dist.sum()
             mean_field_copy = new_state_dist
 
@@ -124,32 +150,19 @@ class MFGStationary:
         Returns:
         array: Value function of dimension horizon by N_states.
         """
-        value_by_iterations: np.ndarray = np.zeros((self.horizon, self.N_states))
-        for k in range(0, self.horizon - 1):
-            for s in range(self.N_states):
-                value_by_iterations[k + 1, s] = sum(
-                    policy[s, a]
-                    * (
-                        self.reward(mean_field=mean_field, state=s, action=a)
-                        + self.gamma
-                        * sum(
-                            self.noise_prob[n]
-                            * value_by_iterations[
-                                k,
-                                self.transition(
-                                    mean_field=mean_field,
-                                    state=s,
-                                    action=a,
-                                    noise=n,
-                                ),
-                            ]
-                            for n in range(self.N_noises)
-                        )
-                    )
-                    for a in range(self.N_actions)
-                )
-        value_function = value_by_iterations[-1]
-        return value_function
+        S = self.N_states
+        # Precompute R[s,a] and T[s,a,n] once (mean_field is fixed throughout)
+        R = self._build_reward_matrix(mean_field)
+        T = self._build_transition_matrix(mean_field)
+
+        V = np.zeros(S)
+        for _ in range(self.horizon - 1):
+            # expected_V_sa[s,a] = sum_n noise_prob[n] * V[T[s,a,n]]
+            expected_V_sa = np.einsum("n,san->sa", self.noise_prob, V[T])
+            Q_sa = R + self.gamma * expected_V_sa
+            V = np.einsum("sa,sa->s", policy, Q_sa)
+
+        return V
 
     def _derive_optimal_policy(
         self, action_values: np.ndarray, mixed_policy: bool = False
@@ -167,17 +180,16 @@ class MFGStationary:
         """
         pi_opt: np.ndarray = np.zeros((self.N_states, self.N_actions))
 
+        if not mixed_policy:
+            # Vectorized deterministic tie-breaking: argmax picks the first maximum
+            best_actions = np.argmax(action_values, axis=1)
+            pi_opt[np.arange(self.N_states), best_actions] = 1.0
+            return pi_opt
+
         for s in range(self.N_states):
             max_value = np.max(action_values[s])
             optimal_actions = np.where(np.abs(action_values[s] - max_value) < 1e-10)[0]
-
-            if mixed_policy:
-                pi_opt[s, optimal_actions] = 1.0 / len(optimal_actions)
-            else:
-                # Deterministic tie-breaking: always pick the first action with maximum value
-                # This matches the JAX implementation's argmax behavior
-                best_action = optimal_actions[0]
-                pi_opt[s, best_action] = 1.0
+            pi_opt[s, optimal_actions] = 1.0 / len(optimal_actions)
 
         return pi_opt
 
@@ -222,19 +234,21 @@ class MFGStationary:
         Returns:
         tuple: Optimal value function and optimal policy.
         """
-        V_opt_by_iterations: np.ndarray = np.zeros((self.horizon, self.N_states))
-        final_action_values: np.ndarray = np.zeros((self.N_states, self.N_actions))
-        for k in range(self.horizon - 1):
-            for s in range(self.N_states):
-                action_values = self._compute_action_values(
-                    mean_field, s, V_opt_by_iterations[k]
-                )
-                V_opt_by_iterations[k + 1, s] = np.max(action_values)
-                if k == self.horizon - 2:
-                    final_action_values[s] = action_values.copy()
-            pi_opt = self._derive_optimal_policy(final_action_values, mixed_policy)
-        value_function_optimal = V_opt_by_iterations[-1]
-        return value_function_optimal, pi_opt
+        S = self.N_states
+        # Precompute R[s,a] and T[s,a,n] once (mean_field is fixed throughout)
+        R = self._build_reward_matrix(mean_field)
+        T = self._build_transition_matrix(mean_field)
+
+        V = np.zeros(S)
+        final_Q = np.zeros((S, self.N_actions))
+        for _ in range(self.horizon - 1):
+            expected_V_sa = np.einsum("n,san->sa", self.noise_prob, V[T])
+            Q_sa = R + self.gamma * expected_V_sa
+            V = np.max(Q_sa, axis=1)
+            final_Q = Q_sa
+
+        pi_opt = self._derive_optimal_policy(final_Q, mixed_policy)
+        return V, pi_opt
 
     def Q_eval(self, policy: np.ndarray, mean_field: np.ndarray) -> np.ndarray:
         """
@@ -247,32 +261,24 @@ class MFGStationary:
         Returns:
         array: State-action value function of dimension N_steps by N_states by N_actions.
         """
-        q_value_by_iteration: np.ndarray = np.zeros(
-            (self.horizon, self.N_states, self.N_actions)
-        )
-        value_by_iteration: np.ndarray = np.zeros((self.horizon, self.N_states))
-        for k in range(0, self.horizon - 1):
-            for s in range(self.N_states):
-                for a in range(self.N_actions):
-                    q_value_by_iteration[k + 1, s, a] = self.reward(
-                        mean_field=mean_field, state=s, action=a
-                    ) + self.gamma * sum(
-                        self.noise_prob[n]
-                        * value_by_iteration[
-                            k,
-                            self.transition(
-                                mean_field=mean_field, state=s, action=a, noise=n
-                            ),
-                        ]
-                        for n in range(self.N_noises)
-                    )
-                value_by_iteration[k + 1, s] = sum(
-                    policy[s, a] * q_value_by_iteration[k + 1, s, a]
-                    for a in range(self.N_actions)
-                )
+        S, A = self.N_states, self.N_actions
+        # Precompute R[s,a] and T[s,a,n] once (mean_field is fixed throughout)
+        R = self._build_reward_matrix(mean_field)
+        T = self._build_transition_matrix(mean_field)
 
-        q_value_function = q_value_by_iteration[-2]
-        return q_value_function
+        V = np.zeros(S)
+        Q_prev = np.zeros((S, A))
+        Q = np.zeros((S, A))
+        for k in range(self.horizon - 1):
+            Q_prev = Q
+            expected_V_sa = np.einsum("n,san->sa", self.noise_prob, V[T])
+            Q = R + self.gamma * expected_V_sa
+            V = np.einsum("sa,sa->s", policy, Q)
+
+        # Return second-to-last Q (matching original q_value_by_iteration[-2] behaviour)
+        if self.horizon >= 3:
+            return Q_prev
+        return np.zeros((S, A))
 
     def exploitability(self, policy: np.ndarray) -> float:
         """

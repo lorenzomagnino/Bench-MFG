@@ -118,12 +118,14 @@ class PSO_jax:
         )
 
         if self.policy_type == "mellowmax":
-            policies_batch = np.array(
-                [
-                    mellowmax(logits, self.env_spec.environment.N_actions)
-                    for logits in logits_batch
-                ]
-            )
+            # Vectorized mellowmax over the particle batch dimension
+            omega = 16.55
+            N_actions = self.env_spec.environment.N_actions
+            c = np.max(logits_batch, axis=-1, keepdims=True)
+            exp_logits = np.exp(omega * (logits_batch - c))
+            log_sum_exp = np.log(np.sum(exp_logits, axis=-1, keepdims=True) / N_actions)
+            mellowmax_vals = c + log_sum_exp / omega
+            policies_batch = np.exp(omega * (logits_batch - mellowmax_vals))
         else:
             logits_max = np.max(logits_batch, axis=-1, keepdims=True)
             logits_stable = logits_batch - logits_max
