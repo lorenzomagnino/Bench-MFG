@@ -3,13 +3,16 @@ repos:
     rev: v4.6.0
     hooks:
       - id: trailing-whitespace
+        exclude: ^\.github/
       - id: end-of-file-fixer
+        exclude: ^\.github/
       - id: check-yaml
       - id: check-added-large-files
       - id: check-merge-conflict
       - id: debug-statements
       - id: mixed-line-ending
         args: [--fix=lf]
+        exclude: ^\.github/
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.4.4
