@@ -77,7 +77,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GIT_TOKEN }}
           prompt: |
             You are a performance analysis expert. Profiling data has just been collected for this codebase.
             The profiled script was: "${{ github.event.inputs.script || 'src/main.py' }}"

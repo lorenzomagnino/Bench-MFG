@@ -34,6 +34,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GIT_TOKEN }}
           prompt: |
             You are a senior Python engineer doing a code quality pass on this repository.
             Work through the following steps carefully and in order:
