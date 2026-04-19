@@ -28,6 +28,24 @@ def _compute_reward_row(args):
     return [env.reward(mean_field=mean_field, state=s, action=a) for a in range(A)]
 
 
+def _map_rows_with_fallback(worker_fn, args_list):
+    """Try process-based row parallelism, but fall back to sequential execution.
+
+    Some constrained runtimes do not permit the semaphore primitives required by
+    ``ProcessPoolExecutor``. The Python reference path is correctness-oriented, so
+    it should still work in those environments even if it cannot parallelize.
+    """
+    if len(args_list) <= 1:
+        return [worker_fn(args) for args in args_list]
+
+    n_workers = min(os.cpu_count() or 1, len(args_list))
+    try:
+        with ProcessPoolExecutor(max_workers=n_workers) as pool:
+            return list(pool.map(worker_fn, args_list))
+    except (NotImplementedError, PermissionError, OSError):
+        return [worker_fn(args) for args in args_list]
+
+
 class MFGStationary:
     """
     Generic Mean Field Game (MFG) Model class.
@@ -113,14 +131,10 @@ class MFGStationary:
         so that independent states run in parallel on multiple CPU cores.
         """
         S, A, N = self.N_states, self.N_actions, self.N_noises
-        n_workers = min(os.cpu_count() or 1, S)
-        with ProcessPoolExecutor(max_workers=n_workers) as pool:
-            rows = list(
-                pool.map(
-                    _compute_transition_row,
-                    [(self, s, mean_field, A, N) for s in range(S)],
-                )
-            )
+        rows = _map_rows_with_fallback(
+            _compute_transition_row,
+            [(self, s, mean_field, A, N) for s in range(S)],
+        )
         return np.array(rows, dtype=np.intp)
 
     def _build_reward_matrix(self, mean_field: np.ndarray) -> np.ndarray:
@@ -130,14 +144,10 @@ class MFGStationary:
         so that independent states run in parallel on multiple CPU cores.
         """
         S, A = self.N_states, self.N_actions
-        n_workers = min(os.cpu_count() or 1, S)
-        with ProcessPoolExecutor(max_workers=n_workers) as pool:
-            rows = list(
-                pool.map(
-                    _compute_reward_row,
-                    [(self, s, mean_field, A) for s in range(S)],
-                )
-            )
+        rows = _map_rows_with_fallback(
+            _compute_reward_row,
+            [(self, s, mean_field, A) for s in range(S)],
+        )
         return np.array(rows)
 
     def mean_field_by_transition_kernel(

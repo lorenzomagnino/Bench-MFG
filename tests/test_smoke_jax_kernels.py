@@ -168,6 +168,29 @@ def test_vpi_opt_backward(spec, uniform_mf):
     assert jnp.all(jnp.isfinite(grad)), "Non-finite gradient in Vpi_opt backward pass"
 
 
+def test_vpi_opt_horizon_one_returns_valid_default_policy(env):
+    """Horizon-1 problems should not fail and should match the Python fallback."""
+    env_h1 = LasryLionsChain(
+        N_states=env.N_states,
+        N_actions=env.N_actions,
+        N_noises=env.N_noises,
+        horizon=1,
+        mean_field=np.asarray(env.stationary_mean_field),
+        noise_prob=np.asarray(env.noise_prob),
+        crowd_penalty_coefficient=env.crowd_penalty_coefficient,
+        movement_penalty=env.movement_penalty,
+        center_attraction=env.center_attraction,
+        gamma=env.gamma,
+        is_noisy=env.is_noisy,
+    )
+    spec_h1 = EnvSpec(environment=env_h1, transition=transition_fn, reward=reward_fn)
+    value, policy = Vpi_opt_jax(jnp.ones(N_STATES) / N_STATES, spec_h1)
+    assert value.shape == (N_STATES,)
+    assert jnp.allclose(value, jnp.zeros(N_STATES))
+    assert policy.shape == (N_STATES, N_ACTIONS)
+    assert jnp.allclose(policy[:, 0], jnp.ones(N_STATES))
+
+
 # ---------------------------------------------------------------------------
 # 4. V_eval_jax
 # ---------------------------------------------------------------------------
@@ -212,6 +235,27 @@ def test_q_eval_backward(spec, uniform_policy, uniform_mf):
     grad = jax.grad(loss)(uniform_policy)
     assert grad.shape == uniform_policy.shape
     assert jnp.all(jnp.isfinite(grad)), "Non-finite gradient in Q_eval backward pass"
+
+
+def test_q_eval_horizon_two_returns_zeros(env, uniform_policy, uniform_mf):
+    """Horizon-2 problems should follow the documented zero-Q fallback."""
+    env_h2 = LasryLionsChain(
+        N_states=env.N_states,
+        N_actions=env.N_actions,
+        N_noises=env.N_noises,
+        horizon=2,
+        mean_field=np.asarray(env.stationary_mean_field),
+        noise_prob=np.asarray(env.noise_prob),
+        crowd_penalty_coefficient=env.crowd_penalty_coefficient,
+        movement_penalty=env.movement_penalty,
+        center_attraction=env.center_attraction,
+        gamma=env.gamma,
+        is_noisy=env.is_noisy,
+    )
+    spec_h2 = EnvSpec(environment=env_h2, transition=transition_fn, reward=reward_fn)
+    q_values = Q_eval_jax(uniform_policy, uniform_mf, spec_h2)
+    assert q_values.shape == (N_STATES, N_ACTIONS)
+    assert jnp.allclose(q_values, jnp.zeros((N_STATES, N_ACTIONS)))
 
 
 # ---------------------------------------------------------------------------
