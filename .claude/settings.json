@@ -16,7 +16,16 @@
       "Bash(pytest:*)",
       "Bash(ruff:*)",
       "Bash(mypy:*)",
-      "Bash(gh pr create:*)"
+      "Bash(gh pr create:*)",
+      "Bash(uv run:*)",
+      "Bash(uv pip:*)",
+      "Bash(uv add:*)",
+      "Bash(uv sync:*)",
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(git reset:*)",
+      "Bash(git remote:*)",
+      "Bash(git pull:*)"
     ]
   }
 }
