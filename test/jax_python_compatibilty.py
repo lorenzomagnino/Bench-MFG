@@ -5,9 +5,6 @@ This script helps verify that both implementations are correct and helps
 decide which one to use for algorithm comparisons.
 """
 
-import jax.numpy as jnp
-import numpy as np
-
 from envs.lasry_lions_chain.lasry_lions_chain import LasryLionsChain
 from envs.lasry_lions_chain.lasry_lions_chain_jit import (
     reward_lasry_lions_chain,
@@ -21,6 +18,8 @@ from envs.mfg_model_class_jit import (
     exploitability_jax,
     mean_field_by_transition_kernel_multi_jax,
 )
+import jax.numpy as jnp
+import numpy as np
 
 
 def create_test_environment():

@@ -4,17 +4,20 @@ import os
 
 import numpy as np
 
-
 # ---------------------------------------------------------------------------
 # Module-level helpers – defined at module scope so ProcessPoolExecutor can
 # pickle them when spawning worker processes.
 # ---------------------------------------------------------------------------
 
+
 def _compute_transition_row(args):
     """Compute T[s, :, :] for a single state s (worker helper)."""
     env, s, mean_field, A, N = args
     return [
-        [env.transition(mean_field=mean_field, state=s, action=a, noise=n) for n in range(N)]
+        [
+            env.transition(mean_field=mean_field, state=s, action=a, noise=n)
+            for n in range(N)
+        ]
         for a in range(A)
     ]
 
@@ -298,7 +301,7 @@ class MFGStationary:
         V = np.zeros(S)
         Q_prev = np.zeros((S, A))
         Q = np.zeros((S, A))
-        for k in range(self.horizon - 1):
+        for _ in range(self.horizon - 1):
             Q_prev = Q
             expected_V_sa = np.einsum("n,san->sa", self.noise_prob, V[T])
             Q = R + self.gamma * expected_V_sa

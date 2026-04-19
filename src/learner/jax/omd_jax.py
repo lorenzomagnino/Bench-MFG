@@ -8,7 +8,6 @@ from envs.mfg_model_class_jit import (
     mean_field_by_transition_kernel_multi_jax,
 )
 import jax
-import jax.numpy as jnp
 import numpy as np
 from tqdm import tqdm
 from utility.policy_average import softmax_policy
@@ -46,7 +45,9 @@ class OMD_jax:
         self.initial_policy = initial_policy
         self.early_stopping_enabled = early_stopping_enabled
         self.temperature = temperature
-        self.jax_device = jax_device if jax_device is not None else jax.devices("cpu")[0]
+        self.jax_device = (
+            jax_device if jax_device is not None else jax.devices("cpu")[0]
+        )
 
     def _put(self, arr):
         """Place a numpy/JAX array on the configured JAX device."""

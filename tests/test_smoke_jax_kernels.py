@@ -119,7 +119,9 @@ def test_mf_one_step_jit_stable(env, spec, uniform_policy):
 
 def test_mf_multi_forward(spec, uniform_policy, uniform_mf):
     """Multi-step MF forward pass returns a valid probability distribution."""
-    out = mean_field_multi(uniform_policy, spec, num_iterations=10, initial_mean_field=uniform_mf)
+    out = mean_field_multi(
+        uniform_policy, spec, num_iterations=10, initial_mean_field=uniform_mf
+    )
     assert out.shape == (N_STATES,)
     assert jnp.isclose(out.sum(), 1.0, atol=1e-5)
     assert jnp.all(out >= 0)
@@ -129,8 +131,10 @@ def test_mf_multi_backward(spec, uniform_policy, uniform_mf):
     """Gradients of the MF norm w.r.t. the policy are finite."""
 
     def loss(policy):
-        mf = mean_field_multi(policy, spec, num_iterations=5, initial_mean_field=uniform_mf)
-        return jnp.sum(mf ** 2)
+        mf = mean_field_multi(
+            policy, spec, num_iterations=5, initial_mean_field=uniform_mf
+        )
+        return jnp.sum(mf**2)
 
     grad = jax.grad(loss)(uniform_policy)
     assert grad.shape == uniform_policy.shape
@@ -242,7 +246,9 @@ def test_exploitability_backward(spec, uniform_policy, uniform_mf):
 def test_exploitability_batch_forward(spec, uniform_mf):
     """exploitability_batch_jax returns a finite array of shape (num_particles,)."""
     policies = jnp.ones((N_PARTICLES, N_STATES, N_ACTIONS)) / N_ACTIONS
-    out = exploitability_batch_jax(policies, spec, uniform_mf, num_particles=N_PARTICLES)
+    out = exploitability_batch_jax(
+        policies, spec, uniform_mf, num_particles=N_PARTICLES
+    )
     assert out.shape == (N_PARTICLES,)
     assert jnp.all(jnp.isfinite(out))
     assert jnp.all(out >= 0)
@@ -252,8 +258,10 @@ def test_exploitability_batch_consistent(spec, uniform_mf):
     """Batch and single exploitability agree on identical policies."""
     policy = jnp.ones((N_STATES, N_ACTIONS)) / N_ACTIONS
     policies = jnp.stack([policy] * N_PARTICLES)
-    batch_out = exploitability_batch_jax(policies, spec, uniform_mf, num_particles=N_PARTICLES)
-    single_out = exploitability_jax(policy, spec, initial_mean_field=uniform_mf)
-    assert jnp.allclose(batch_out, single_out, atol=1e-5), (
-        f"Batch and single exploitability diverge: {batch_out} vs {float(single_out)}"
+    batch_out = exploitability_batch_jax(
+        policies, spec, uniform_mf, num_particles=N_PARTICLES
     )
+    single_out = exploitability_jax(policy, spec, initial_mean_field=uniform_mf)
+    assert jnp.allclose(
+        batch_out, single_out, atol=1e-5
+    ), f"Batch and single exploitability diverge: {batch_out} vs {float(single_out)}"

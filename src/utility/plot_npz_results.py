@@ -1771,17 +1771,35 @@ def plot_runtime_bar(
         colors = ColorsConfig()
 
     default_colors = [
-        "blue", "red", "green", "orange", "purple",
-        "brown", "pink", "gray", "olive", "cyan",
+        "blue",
+        "red",
+        "green",
+        "orange",
+        "purple",
+        "brown",
+        "pink",
+        "gray",
+        "olive",
+        "cyan",
     ]
     if color_list is None:
-        color_list = [default_colors[i % len(default_colors)] for i in range(len(means))]
+        color_list = [
+            default_colors[i % len(default_colors)] for i in range(len(means))
+        ]
 
     fig, ax = plt.subplots(figsize=(max(8, len(means) * 1.2), 5))
     fig.patch.set_facecolor(colors.figure_background)
 
     x = np.arange(len(means))
-    bars = ax.bar(x, means, yerr=stds, capsize=5, color=color_list, alpha=0.8, error_kw={"linewidth": 1.5})
+    ax.bar(
+        x,
+        means,
+        yerr=stds,
+        capsize=5,
+        color=color_list,
+        alpha=0.8,
+        error_kw={"linewidth": 1.5},
+    )
 
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=11)
@@ -1790,8 +1808,15 @@ def plot_runtime_bar(
 
     if show_legend and legend_loc is not None:
         legend_handles = [
-            Line2D([0], [0], color=color_list[i], marker="s", linestyle="None",
-                   markersize=10, label=labels[i])
+            Line2D(
+                [0],
+                [0],
+                color=color_list[i],
+                marker="s",
+                linestyle="None",
+                markersize=10,
+                label=labels[i],
+            )
             for i in range(len(labels))
         ]
         ax.legend(handles=legend_handles, loc=legend_loc, fontsize=10, frameon=True)
@@ -1802,7 +1827,12 @@ def plot_runtime_bar(
         fn = Path(fn)
         fn.parent.mkdir(parents=True, exist_ok=True)
         fmt = "pdf" if str(fn).lower().endswith(".pdf") else None
-        plt.savefig(fn, bbox_inches="tight", pad_inches=0.1, **({"format": fmt} if fmt else {"dpi": 300}))
+        plt.savefig(
+            fn,
+            bbox_inches="tight",
+            pad_inches=0.1,
+            **({"format": fmt} if fmt else {"dpi": 300}),
+        )
 
     if return_fig:
         return fig

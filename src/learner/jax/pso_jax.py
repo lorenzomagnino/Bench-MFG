@@ -3,7 +3,6 @@ import logging
 
 from envs.mfg_model_class_jit import (
     EnvSpec,
-    exploitability_batch_jax,
     exploitability_batch_pmap,
     exploitability_jax,
     mean_field_by_transition_kernel_multi_jax,
@@ -84,7 +83,9 @@ class PSO_jax:
         self.initialization_type = initialization_type
         self.shuffle_type = shuffle
         self.policy_type = policy_type  # mellowmax or softmax
-        self.jax_device = jax_device if jax_device is not None else jax.devices("cpu")[0]
+        self.jax_device = (
+            jax_device if jax_device is not None else jax.devices("cpu")[0]
+        )
         logging.info(
             f"Initialized PSO with {self.num_iterations} iterations, \n{self.num_particles} particles, \ntotal_dim: {self.dim}"
         )
@@ -283,7 +284,10 @@ class PSO_jax:
                 self.env_spec.environment.stationary_mean_field
             )
             mean_field = mean_field_by_transition_kernel_multi_jax(
-                self._put(best_policy), self.env_spec, 50, initial_mean_field=current_stationary_mf
+                self._put(best_policy),
+                self.env_spec,
+                50,
+                initial_mean_field=current_stationary_mf,
             )
             self.env_spec.environment.stationary_mean_field = np.asarray(mean_field)
 

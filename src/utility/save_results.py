@@ -11,7 +11,11 @@ from utility.path_utils import get_output_directory
 
 
 def save_results(
-    results, cfg: MFGConfig, initial_policy=None, initial_mean_field=None, runtime_s=None
+    results,
+    cfg: MFGConfig,
+    initial_policy=None,
+    initial_mean_field=None,
+    runtime_s=None,
 ) -> str:
     """Save experimental results with unique run ID.
 
