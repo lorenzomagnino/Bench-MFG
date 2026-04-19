@@ -34,6 +34,63 @@ class EnvSpec:
     ] = field(compare=False)
 
 
+def _reward_matrix(mean_field: jnp.ndarray, spec: EnvSpec) -> jnp.ndarray:
+    """Build the dense reward matrix R[s, a] for a fixed mean field."""
+    S, A = spec.environment.N_states, spec.environment.N_actions
+    s_idx = jnp.arange(S)
+    a_idx = jnp.arange(A)
+    return jax.vmap(
+        lambda s: jax.vmap(lambda a: spec.reward(mean_field, s, a, spec.environment))(
+            a_idx
+        )
+    )(s_idx)
+
+
+def _transition_tensor(mean_field: jnp.ndarray, spec: EnvSpec) -> jnp.ndarray:
+    """Build the dense transition tensor T[s, a, n] -> next_state."""
+    S, A, N = (
+        spec.environment.N_states,
+        spec.environment.N_actions,
+        spec.environment.N_noises,
+    )
+    s_idx = jnp.arange(S)
+    a_idx = jnp.arange(A)
+    n_idx = jnp.arange(N)
+
+    def trans_for_sa(s, a):
+        return jax.vmap(
+            lambda n: spec.transition(mean_field, s, a, n, spec.environment)
+        )(n_idx)
+
+    return jax.vmap(lambda s: jax.vmap(lambda a: trans_for_sa(s, a))(a_idx))(s_idx)
+
+
+def _normalized_transition_step(
+    policy: jnp.ndarray,
+    mean_field: jnp.ndarray,
+    next_states_san: jnp.ndarray,
+    noise_prob: jnp.ndarray,
+    num_states: int,
+) -> jnp.ndarray:
+    """Apply a transition tensor to a policy/mean-field pair and renormalize."""
+    probs = policy[:, :, None] * mean_field[:, None, None] * noise_prob[None, None, :]
+    new_state_dist = (
+        jnp.zeros(num_states, dtype=probs.dtype).at[next_states_san].add(probs)
+    )
+    return new_state_dist / new_state_dist.sum()
+
+
+def _q_from_value(
+    value: jnp.ndarray,
+    rewards_sa: jnp.ndarray,
+    next_states_san: jnp.ndarray,
+    noise_prob: jnp.ndarray,
+    gamma: float,
+) -> jnp.ndarray:
+    expected_v_sa = jnp.einsum("n,san->sa", noise_prob, value[next_states_san])
+    return rewards_sa + gamma * expected_v_sa
+
+
 @jax_jit
 def mean_field_by_transition_kernel_one_step_jax(
     policy: jnp.ndarray,
@@ -52,34 +109,13 @@ def mean_field_by_transition_kernel_one_step_jax(
     new_state_dist is the new state distribution that assigns probability to each state.
     Finally, normalize the new state distribution to ensure it is a probability distribution.
     """
-    S, A, N = (
-        spec.environment.N_states,
-        spec.environment.N_actions,
-        spec.environment.N_noises,
-    )
+    S = spec.environment.N_states
     stationary_mf = jnp.asarray(spec.environment.stationary_mean_field)
     noise_prob = jnp.asarray(spec.environment.noise_prob)
-
-    s_idx = jnp.arange(S)
-    a_idx = jnp.arange(A)
-    n_idx = jnp.arange(N)
-
-    def trans_for_sa(s, a):
-        return jax.vmap(
-            lambda n: spec.transition(stationary_mf, s, a, n, spec.environment)
-        )(n_idx)
-
-    next_states_san = jax.vmap(lambda s: jax.vmap(lambda a: trans_for_sa(s, a))(a_idx))(
-        s_idx
+    next_states_san = _transition_tensor(stationary_mf, spec)
+    return _normalized_transition_step(
+        policy, stationary_mf, next_states_san, noise_prob, S
     )
-
-    probs = (
-        policy[:, :, None] * stationary_mf[:, None, None] * noise_prob[None, None, :]
-    )
-
-    new_state_dist = jnp.zeros(S).at[next_states_san].add(probs)
-
-    return new_state_dist / new_state_dist.sum()
 
 
 @partial(jax.jit, static_argnames=("spec", "num_iterations"))
@@ -101,33 +137,15 @@ def mean_field_by_transition_kernel_multi_jax(
 
     Logic: spec.environment is the environment instance
     """
-    S, A, N = (
-        spec.environment.N_states,
-        spec.environment.N_actions,
-        spec.environment.N_noises,
-    )
+    S, A = spec.environment.N_states, spec.environment.N_actions
     policy = policy.reshape(S, A)
     noise_prob = jnp.asarray(spec.environment.noise_prob)
 
-    s_idx = jnp.arange(S)
-    a_idx = jnp.arange(A)
-    n_idx = jnp.arange(N)
-
     def one_step(current_mf: jnp.ndarray) -> jnp.ndarray:
-        def trans_for_sa(s, a):
-            return jax.vmap(
-                lambda n: spec.transition(current_mf, s, a, n, spec.environment)
-            )(n_idx)
-
-        next_states_san = jax.vmap(
-            lambda s: jax.vmap(lambda a: trans_for_sa(s, a))(a_idx)
-        )(s_idx)
-
-        probs = (
-            policy[:, :, None] * current_mf[:, None, None] * noise_prob[None, None, :]
+        next_states_san = _transition_tensor(current_mf, spec)
+        return _normalized_transition_step(
+            policy, current_mf, next_states_san, noise_prob, S
         )
-        new_state_dist = jnp.zeros(S).at[next_states_san].add(probs)
-        return new_state_dist / new_state_dist.sum()
 
     def body_fun(_, mf):
         return one_step(mf)
@@ -142,39 +160,21 @@ def Vpi_opt_jax(
     spec: EnvSpec,
 ) -> tuple[jnp.ndarray, jnp.ndarray]:
     """Computes the optimal value function using jax.lax.scan."""
-    S, A, N = (
-        spec.environment.N_states,
-        spec.environment.N_actions,
-        spec.environment.N_noises,
-    )
+    S, A = spec.environment.N_states, spec.environment.N_actions
+    if spec.environment.horizon < 2:
+        zero_actions = jnp.zeros(S, dtype=jnp.int32)
+        return jnp.zeros(S), jax.nn.one_hot(zero_actions, num_classes=A)
+
     noise_prob = jnp.asarray(spec.environment.noise_prob)
-
-    s_idx = jnp.arange(S)
-    a_idx = jnp.arange(A)
-    n_idx = jnp.arange(N)
-
-    rewards_sa = jax.vmap(
-        lambda s: jax.vmap(lambda a: spec.reward(mean_field, s, a, spec.environment))(
-            a_idx
-        )
-    )(s_idx)
-
-    def trans_for_sa(s, a):
-        return jax.vmap(
-            lambda n: spec.transition(mean_field, s, a, n, spec.environment)
-        )(n_idx)
-
-    next_states_san = jax.vmap(lambda s: jax.vmap(lambda a: trans_for_sa(s, a))(a_idx))(
-        s_idx
-    )
+    rewards_sa = _reward_matrix(mean_field, spec)
+    next_states_san = _transition_tensor(mean_field, spec)
 
     def bellman_step(V_k, _):
-        expected_V_sa = jnp.einsum("n,san->sa", noise_prob, V_k[next_states_san])
-        Q_sa = rewards_sa + spec.environment.gamma * expected_V_sa
-
+        Q_sa = _q_from_value(
+            V_k, rewards_sa, next_states_san, noise_prob, spec.environment.gamma
+        )
         V_k_plus_1 = jnp.max(Q_sa, axis=1)
         best_action = jnp.argmax(Q_sa, axis=1)
-
         return V_k_plus_1, best_action
 
     V_initial = jnp.zeros(S)
@@ -194,35 +194,15 @@ def V_eval_jax(
     spec: EnvSpec,
 ) -> jnp.ndarray:
     """Evaluates the value function using jax.lax.scan."""
-    S, A, N = (
-        spec.environment.N_states,
-        spec.environment.N_actions,
-        spec.environment.N_noises,
-    )
+    S = spec.environment.N_states
     noise_prob = jnp.asarray(spec.environment.noise_prob)
-
-    s_idx = jnp.arange(S)
-    a_idx = jnp.arange(A)
-    n_idx = jnp.arange(N)
-
-    rewards_sa = jax.vmap(
-        lambda s: jax.vmap(lambda a: spec.reward(mean_field, s, a, spec.environment))(
-            a_idx
-        )
-    )(s_idx)
-
-    def trans_for_sa(s, a):
-        return jax.vmap(
-            lambda n: spec.transition(mean_field, s, a, n, spec.environment)
-        )(n_idx)
-
-    next_states_san = jax.vmap(lambda s: jax.vmap(lambda a: trans_for_sa(s, a))(a_idx))(
-        s_idx
-    )
+    rewards_sa = _reward_matrix(mean_field, spec)
+    next_states_san = _transition_tensor(mean_field, spec)
 
     def bellman_step_eval(V_k, _):
-        expected_V_sa = jnp.einsum("n,san->sa", noise_prob, V_k[next_states_san])
-        Q_sa = rewards_sa + spec.environment.gamma * expected_V_sa
+        Q_sa = _q_from_value(
+            V_k, rewards_sa, next_states_san, noise_prob, spec.environment.gamma
+        )
         V_k_plus_1 = jnp.einsum("sa,sa->s", policy, Q_sa)
         return V_k_plus_1, None  # Return new V, no stacked output needed
 
@@ -244,50 +224,28 @@ def Q_eval_jax(
 
     Returns Q-values from the second-to-last iteration (matching the original Q_eval behavior).
     """
-    S, A, N = (
-        spec.environment.N_states,
-        spec.environment.N_actions,
-        spec.environment.N_noises,
-    )
+    S, A = spec.environment.N_states, spec.environment.N_actions
+    if spec.environment.horizon < 3:
+        return jnp.zeros((S, A))
+
     noise_prob = jnp.asarray(spec.environment.noise_prob)
     policy = policy.reshape(S, A)
-
-    s_idx = jnp.arange(S)
-    a_idx = jnp.arange(A)
-    n_idx = jnp.arange(N)
-
-    rewards_sa = jax.vmap(
-        lambda s: jax.vmap(lambda a: spec.reward(mean_field, s, a, spec.environment))(
-            a_idx
-        )
-    )(s_idx)
-
-    def trans_for_sa(s, a):
-        return jax.vmap(
-            lambda n: spec.transition(mean_field, s, a, n, spec.environment)
-        )(n_idx)
-
-    next_states_san = jax.vmap(lambda s: jax.vmap(lambda a: trans_for_sa(s, a))(a_idx))(
-        s_idx
-    )
+    rewards_sa = _reward_matrix(mean_field, spec)
+    next_states_san = _transition_tensor(mean_field, spec)
 
     def bellman_step_eval(carry, _):
         V_k = carry
-        expected_V_sa = jnp.einsum("n,san->sa", noise_prob, V_k[next_states_san])
-        Q_sa = rewards_sa + spec.environment.gamma * expected_V_sa
+        Q_sa = _q_from_value(
+            V_k, rewards_sa, next_states_san, noise_prob, spec.environment.gamma
+        )
         V_k_plus_1 = jnp.einsum("sa,sa->s", policy, Q_sa)
         return V_k_plus_1, Q_sa
 
     V_initial = jnp.zeros(S)
-    V_final, Q_sa_hist = jax.lax.scan(
+    _, Q_sa_hist = jax.lax.scan(
         bellman_step_eval, V_initial, xs=None, length=spec.environment.horizon - 1
     )
-    if spec.environment.horizon >= 3:
-        return Q_sa_hist[-2]
-    elif spec.environment.horizon == 2:
-        return jnp.zeros((S, A))
-    else:
-        return jnp.zeros((S, A))
+    return Q_sa_hist[-2]
 
 
 @jax_jit
@@ -314,7 +272,7 @@ def exploitability_jax(
     return jnp.dot(mean_field_pi, V_opt) - jnp.dot(mean_field_pi, V_pi)
 
 
-@partial(jax.jit, static_argnames=("spec", "num_particles"))
+@partial(jax.jit, static_argnames="spec")
 def exploitability_batch_jax(
     policies: jnp.ndarray,
     spec: EnvSpec,

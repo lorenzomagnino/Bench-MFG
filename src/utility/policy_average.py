@@ -1,3 +1,5 @@
+import jax
+import jax.numpy as jnp
 import numpy as np
 
 
@@ -18,6 +20,12 @@ def greedy_policy(q_values: np.ndarray) -> np.ndarray:
     return policy
 
 
+def greedy_policy_jax(q_values: jax.Array) -> jax.Array:
+    """JAX version of the greedy one-hot policy improvement step."""
+    best_actions = jnp.argmax(q_values, axis=1)
+    return jax.nn.one_hot(best_actions, q_values.shape[1], dtype=q_values.dtype)
+
+
 def softmax_policy(q_values: np.ndarray, temperature: float) -> np.ndarray:
     """
     Compute softmax (Boltzmann) policy from Q-values.
@@ -32,3 +40,8 @@ def softmax_policy(q_values: np.ndarray, temperature: float) -> np.ndarray:
     q_shifted = q_values - np.max(q_values, axis=1, keepdims=True)
     exp_q = np.exp(q_shifted / temperature)
     return exp_q / np.sum(exp_q, axis=1, keepdims=True)
+
+
+def softmax_policy_jax(q_values: jax.Array, temperature: float) -> jax.Array:
+    """JAX version of the Boltzmann policy improvement step."""
+    return jax.nn.softmax(q_values / temperature, axis=1)
