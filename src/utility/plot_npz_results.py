@@ -1684,6 +1684,312 @@ def extract_hyperparameters(version_withhyper: str) -> str:
         return ""
 
 
+def load_runtime(npz_path: str | Path) -> float:
+    """Load wall-clock runtime (seconds) from a metrics.npz file."""
+    npz_path = Path(npz_path)
+    if not npz_path.exists():
+        raise FileNotFoundError(f"NPZ file not found: {npz_path}")
+    with np.load(npz_path, allow_pickle=True) as data:
+        if "runtime_s" not in data:
+            raise ValueError(
+                f"{npz_path} does not contain 'runtime_s'. Available: {list(data.keys())}"
+            )
+        return float(data["runtime_s"])
+
+
+def group_runtimes_by_seed(
+    environment: str,
+    outputs_dir: str | Path = "outputs",
+) -> dict[str, dict[str, Any]]:
+    """Group wall-clock runtimes by version and seed.
+
+    Mirrors group_exploitabilities_by_seed but reads metrics.npz instead of
+    exploitabilities.npz, collecting one runtime scalar per timestamp directory.
+
+    Returns:
+        {version_withhyper: {"runtimes": [float, ...], "seed_names": [str, ...]}}
+        where runtimes contains one value per (seed, timestamp) pair, and
+        seed_names lists the unique seeds found for that version.
+    """
+    outputs_dir = Path(outputs_dir)
+    env_dir = outputs_dir / environment
+
+    if not env_dir.exists():
+        raise FileNotFoundError(f"Environment directory not found: {env_dir}")
+
+    version_data: dict[str, dict[str, list]] = {}
+
+    for algorithm_dir in env_dir.iterdir():
+        if not algorithm_dir.is_dir():
+            continue
+        for seed_dir in algorithm_dir.iterdir():
+            if not seed_dir.is_dir() or not seed_dir.name.startswith("seed_"):
+                continue
+            seed_name = seed_dir.name
+            for version_dir in seed_dir.iterdir():
+                if not version_dir.is_dir():
+                    continue
+                version_name = version_dir.name
+                if version_name not in version_data:
+                    version_data[version_name] = {"runtimes": [], "seeds": []}
+                for timestamp_dir in version_dir.iterdir():
+                    if not timestamp_dir.is_dir():
+                        continue
+                    metrics_path = timestamp_dir / "metrics.npz"
+                    if metrics_path.exists():
+                        try:
+                            rt = load_runtime(metrics_path)
+                            version_data[version_name]["runtimes"].append(rt)
+                            version_data[version_name]["seeds"].append(seed_name)
+                        except Exception as e:
+                            print(f"Warning: Failed to load {metrics_path}: {e}")
+
+    result: dict[str, dict[str, Any]] = {}
+    for version_name, data in version_data.items():
+        seed_names = sorted(set(data["seeds"]))
+        result[version_name] = {
+            "runtimes": data["runtimes"],
+            "seed_names": seed_names,
+        }
+    return result
+
+
+def plot_runtime_bar(
+    data: list[list[float]],
+    labels: list[str],
+    ylabel: str = "Wall-clock runtime (s)",
+    return_fig: bool = False,
+    fn: str | Path | None = None,
+    colors: ColorsConfig | None = None,
+    color_list: list[str] | None = None,
+    legend_loc: str | None = None,
+    show_legend: bool = True,
+) -> Figure | None:
+    """Horizontal box plot of runtimes on a log x-axis, one row per algorithm."""
+    if colors is None:
+        colors = ColorsConfig()
+
+    default_colors = [
+        "#4C72B0",
+        "#DD8452",
+        "#55A868",
+        "#C44E52",
+        "#8172B3",
+        "#937860",
+        "#DA8BC3",
+        "#8C8C8C",
+        "#CCB974",
+        "#64B5CD",
+    ]
+    if color_list is None:
+        color_list = [default_colors[i % len(default_colors)] for i in range(len(data))]
+
+    n = len(labels)
+    fig_h = max(2.5, n * 0.55 + 1.0)
+    fig, ax = plt.subplots(figsize=(5, fig_h))
+    fig.patch.set_facecolor(colors.figure_background)
+
+    bp = ax.boxplot(
+        data,
+        vert=False,
+        patch_artist=True,
+        widths=0.5,
+        flierprops={"marker": "o", "markersize": 3, "linestyle": "none"},
+        medianprops={"color": "black", "linewidth": 1.5},
+    )
+
+    for patch, flier, color in zip(bp["boxes"], bp["fliers"], color_list, strict=False):
+        patch.set_facecolor(color)
+        patch.set_alpha(0.75)
+        flier.set_markerfacecolor(color)
+        flier.set_markeredgecolor(color)
+
+    for i, color in enumerate(color_list):
+        for w in bp["whiskers"][2 * i : 2 * i + 2]:
+            w.set_color(color)
+        for c in bp["caps"][2 * i : 2 * i + 2]:
+            c.set_color(color)
+
+    ax.set_xscale("log")
+    ax.set_yticks(range(1, n + 1))
+    ax.set_yticklabels(labels, fontsize=10)
+    ax.set_xlabel("Wall-clock runtime (s)", fontsize=11)
+    ax.grid(True, axis="x", linestyle="--", linewidth=0.4, alpha=0.5)
+    ax.tick_params(axis="x", labelsize=9)
+    ax.invert_yaxis()
+
+    plt.tight_layout()
+
+    if fn is not None:
+        fn = Path(fn)
+        fn.parent.mkdir(parents=True, exist_ok=True)
+        fmt = "pdf" if str(fn).lower().endswith(".pdf") else None
+        plt.savefig(
+            fn,
+            bbox_inches="tight",
+            pad_inches=0.1,
+            **({"format": fmt} if fmt else {"dpi": 300}),
+        )
+
+    if return_fig:
+        return fig
+    plt.close(fig)
+    return None
+
+
+def plot_runtime_multiple_versions(
+    environment: str,
+    versions_withhyper: list[str],
+    outputs_dir: str | Path = "outputs",
+    ylabel: str = "Wall-clock runtime (s)",
+    return_fig: bool = False,
+    fn: str | Path | None = None,
+    colors: ColorsConfig | None = None,
+    color_list: list[str] | None = None,
+    label_format: str = "algorithm",
+    legend_loc: str | None = None,
+    show_legend: bool = False,
+) -> Figure | None:
+    """Bar chart of wall-clock runtime (mean ± std over seeds) for multiple versions.
+
+    Mirrors plot_exploitability_multiple_versions: each version is one bar,
+    height = mean runtime, error bar = std over seeds. Uses the same best_model.yaml
+    written by the exploitability sweep to pick best hyperparameters.
+
+    Args:
+        environment: Name of the environment (e.g., "LasryLionsChain").
+        versions_withhyper: List of version_withhyper names to include.
+        outputs_dir: Root directory containing outputs. Defaults to "outputs".
+        ylabel: Label for y-axis.
+        return_fig: If True, returns the figure object.
+        fn: Optional filename to save the figure.
+        colors: Optional color configuration.
+        color_list: Optional list of colors for each version.
+        label_format: "algorithm" for short names, "hyperparameters" for param strings,
+            "full" for raw version names.
+        legend_loc: Legend location string (e.g., "upper right"). None = no legend.
+        show_legend: If True, show a legend panel.
+
+    Returns:
+        The matplotlib Figure if return_fig is True; otherwise None.
+    """
+    if len(versions_withhyper) == 0:
+        raise ValueError("versions_withhyper cannot be empty")
+
+    all_runtime_data = group_runtimes_by_seed(environment, outputs_dir)
+
+    raw_data: list[list[float]] = []
+    labels: list[str] = []
+
+    for version_withhyper in versions_withhyper:
+        if version_withhyper not in all_runtime_data:
+            print(f"Warning: no runtime data for '{version_withhyper}', skipping.")
+            continue
+
+        runtimes = all_runtime_data[version_withhyper]["runtimes"]
+        if len(runtimes) == 0:
+            print(f"Warning: empty runtimes for '{version_withhyper}', skipping.")
+            continue
+
+        raw_data.append(list(runtimes))
+
+        if label_format == "algorithm":
+            label = version_to_algorithm_name(version_withhyper)
+        elif label_format == "hyperparameters":
+            hp = extract_hyperparameters(version_withhyper)
+            label = hp if hp else version_withhyper
+        else:
+            label = version_withhyper
+        labels.append(label)
+
+    if len(raw_data) == 0:
+        raise ValueError("No runtime data found for any of the specified versions.")
+
+    if fn is None:
+        project_root = Path(__file__).parent.parent
+        results_dir = project_root / "results" / environment
+        results_dir.mkdir(parents=True, exist_ok=True)
+        fn = results_dir / "runtime_comparison.pdf"
+
+    return plot_runtime_bar(
+        data=raw_data,
+        labels=labels,
+        ylabel=ylabel,
+        return_fig=return_fig,
+        fn=fn,
+        colors=colors,
+        color_list=color_list,
+        legend_loc=legend_loc,
+        show_legend=show_legend,
+    )
+
+
+def plot_runtime_for_env(
+    environment: str,
+    outputs_dir: str | Path = "outputs",
+    results_dir: str | Path | None = None,
+    ylabel: str = "Wall-clock runtime (s)",
+    return_fig: bool = False,
+    fn: str | Path | None = None,
+    colors: ColorsConfig | None = None,
+    color_list: list[str] | None = None,
+    label_format: str = "algorithm",
+    legend_loc: str | None = None,
+    show_legend: bool = False,
+) -> Figure | None:
+    """Plot runtime bar chart for an environment using best hyperparameters per algorithm.
+
+    Reads best versions from *_best_models.yaml (written by plot_exploitability_by_algorithm)
+    and fixed non-sweep versions, exactly as get_versions_for_comparison does for exploitability.
+
+    Args:
+        environment: Name of the environment (e.g., "LasryLionsChain").
+        outputs_dir: Root directory containing outputs. Defaults to "outputs".
+        results_dir: Directory containing *_best_models.yaml files.
+            If None, uses project_root/results/{environment}.
+        ylabel: Label for y-axis.
+        return_fig: If True, returns the figure object.
+        fn: Optional filename to save the figure.
+        colors: Optional color configuration.
+        color_list: Optional list of colors for each version.
+        label_format: "algorithm", "hyperparameters", or "full".
+        legend_loc: Legend location string. None = no legend.
+        show_legend: If True, show a legend panel.
+
+    Returns:
+        The matplotlib Figure if return_fig is True; otherwise None.
+    """
+    versions_withhyper = get_versions_for_comparison(
+        environment=environment,
+        results_dir=results_dir,
+    )
+    if len(versions_withhyper) == 0:
+        raise ValueError(
+            f"No versions found for environment '{environment}'. "
+            "Run plot_exploitability_by_algorithm first to generate best_models.yaml files."
+        )
+
+    if fn is None:
+        project_root = Path(__file__).parent.parent
+        env_results_dir = project_root / "results" / environment
+        env_results_dir.mkdir(parents=True, exist_ok=True)
+        fn = env_results_dir / "runtime_best_versions.pdf"
+
+    return plot_runtime_multiple_versions(
+        environment=environment,
+        versions_withhyper=versions_withhyper,
+        outputs_dir=outputs_dir,
+        ylabel=ylabel,
+        return_fig=return_fig,
+        fn=fn,
+        colors=colors,
+        color_list=color_list,
+        label_format=label_format,
+        legend_loc=legend_loc,
+        show_legend=show_legend,
+    )
+
+
 def get_four_rooms_walls(grid_dim: tuple) -> np.ndarray:
     """Generate walls array for FourRoomsAversion2D environment.
 
@@ -1789,6 +2095,12 @@ if __name__ == "__main__":
             legend_loc=legend_location,
             show_legend=show_legend,
         )
+
+    plot_runtime_for_env(
+        environment=environment,
+        outputs_dir="outputs",
+        label_format="algorithm",
+    )
 
     versions_withhyper = get_versions_for_comparison(environment=environment)
 

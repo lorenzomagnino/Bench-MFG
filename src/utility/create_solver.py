@@ -271,7 +271,9 @@ def create_solver(
     jax_device = get_jax_device(cfg.device)
 
     if algo_cfg._target_ == "PSO":
-        solver = _create_pso_solver_jax(environment, env_name, algo_cfg, jax_device=jax_device)
+        solver = _create_pso_solver_jax(
+            environment, env_name, algo_cfg, jax_device=jax_device
+        )
     elif algo_cfg._target_ == "DampedFP":
         if algo_cfg.dampedfp.use_python:
             solver = _create_fp_solver_python(environment, initial_policy, algo_cfg)

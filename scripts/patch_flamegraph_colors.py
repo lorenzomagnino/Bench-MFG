@@ -9,9 +9,9 @@ If no output path is given the input file is patched in-place.
 
 from __future__ import annotations
 
+from pathlib import Path
 import re
 import sys
-from pathlib import Path
 
 # 11-stop warm palette: bright yellow → orange → deep red, mirroring the original length.
 _HOT_PALETTE = (
@@ -20,7 +20,9 @@ _HOT_PALETTE = (
 )
 
 # Matches any 11-element array of 6-digit hex colors immediately before .map(Ki)
-_PALETTE_RE = re.compile(r'\["#[0-9A-Fa-f]{6}"(?:,"#[0-9A-Fa-f]{6}"){10}\](?=\.map\(Ki\))')
+_PALETTE_RE = re.compile(
+    r'\["#[0-9A-Fa-f]{6}"(?:,"#[0-9A-Fa-f]{6}"){10}\](?=\.map\(Ki\))'
+)
 
 
 def patch(html: str) -> str:

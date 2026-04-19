@@ -5,6 +5,7 @@ Main entry point for Bench-MFG experiments using Hydra for configuration managem
 import logging
 from pathlib import Path
 import sys
+import time
 
 # Ensure src/ packages are importable when running directly (without pip install -e .)
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -60,7 +61,9 @@ def train_model(
         initial_mean_field: Initial mean field to save
     """
     log.info(f"Solver created: {cfg.algorithm._target_}")
+    t0 = time.perf_counter()
     results = run_training(solver, cfg)
+    runtime_s = time.perf_counter() - t0
     optimal_policy, mean_field, exploitabilities, logger = results
 
     run_id = None
@@ -70,6 +73,7 @@ def train_model(
             cfg,
             initial_policy=initial_policy,
             initial_mean_field=initial_mean_field,
+            runtime_s=runtime_s,
         )
         log.info(f"Results saved with run ID: {run_id}")
 

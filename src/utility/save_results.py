@@ -11,7 +11,11 @@ from utility.path_utils import get_output_directory
 
 
 def save_results(
-    results, cfg: MFGConfig, initial_policy=None, initial_mean_field=None
+    results,
+    cfg: MFGConfig,
+    initial_policy=None,
+    initial_mean_field=None,
+    runtime_s=None,
 ) -> str:
     """Save experimental results with unique run ID.
 
@@ -69,5 +73,8 @@ def save_results(
     if initial_mean_field is not None:
         initial_mean_field_path = output_dir / "initial_mean_field.npz"
         np.savez(initial_mean_field_path, mean_field=initial_mean_field)
+
+    if runtime_s is not None:
+        np.savez(output_dir / "metrics.npz", runtime_s=runtime_s)
 
     return run_id

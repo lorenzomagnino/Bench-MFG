@@ -9,7 +9,6 @@ from envs.mfg_model_class_jit import (
     mean_field_by_transition_kernel_multi_jax,
 )
 import jax
-import jax.numpy as jnp
 import numpy as np
 from tqdm import tqdm
 
@@ -48,7 +47,9 @@ class DampedFP_jax:
         self.damped_constant = damped_constant
         self.lambda_schedule = lambda_schedule
         self.num_transition_steps = int(num_transition_steps)
-        self.jax_device = jax_device if jax_device is not None else jax.devices("cpu")[0]
+        self.jax_device = (
+            jax_device if jax_device is not None else jax.devices("cpu")[0]
+        )
 
     def _put(self, arr):
         """Place a numpy/JAX array on the configured JAX device."""

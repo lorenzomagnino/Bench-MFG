@@ -18,7 +18,6 @@ from envs.mfg_model_class_jit import (
     mean_field_by_transition_kernel_multi_jax,
 )
 import jax
-import jax.numpy as jnp
 import numpy as np
 from tqdm import tqdm
 from utility.policy_average import greedy_policy, softmax_policy
@@ -84,7 +83,9 @@ class PI_jax:
         self.variant = variant
         self.temperature = temperature
         self.damped_constant = damped_constant
-        self.jax_device = jax_device if jax_device is not None else jax.devices("cpu")[0]
+        self.jax_device = (
+            jax_device if jax_device is not None else jax.devices("cpu")[0]
+        )
 
         if self.variant not in (
             "policy_iteration",
@@ -96,11 +97,11 @@ class PI_jax:
         if (
             self.variant == "smooth_policy_iteration"
             and self.damped_constant is not None
+            and not (0 < self.damped_constant <= 1.0)
         ):
-            if not (0 < self.damped_constant <= 1.0):
-                raise ValueError(
-                    f"damped_constant must be in (0,1], got {self.damped_constant}"
-                )
+            raise ValueError(
+                f"damped_constant must be in (0,1], got {self.damped_constant}"
+            )
 
     def _put(self, arr):
         """Place a numpy/JAX array on the configured JAX device."""

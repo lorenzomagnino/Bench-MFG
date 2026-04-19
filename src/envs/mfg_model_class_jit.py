@@ -362,7 +362,9 @@ def exploitability_batch_pmap(
     """
     n_devices = len(jax.devices())
     if n_devices == 1:
-        return exploitability_batch_jax(policies, spec, initial_mean_field, num_particles)
+        return exploitability_batch_jax(
+            policies, spec, initial_mean_field, num_particles
+        )
 
     # Pad particle count to the nearest multiple of n_devices for even sharding.
     remainder = num_particles % n_devices
@@ -379,7 +381,9 @@ def exploitability_batch_pmap(
     )
 
     def _per_device_batch(shard):
-        return jax.vmap(lambda p: exploitability_jax(p, spec, initial_mean_field))(shard)
+        return jax.vmap(lambda p: exploitability_jax(p, spec, initial_mean_field))(
+            shard
+        )
 
     results = jax.pmap(_per_device_batch)(policies_sharded)
     return results.reshape(-1)[:num_particles]
