@@ -1755,8 +1755,7 @@ def group_runtimes_by_seed(
 
 
 def plot_runtime_bar(
-    means: list[float],
-    stds: list[float],
+    data: list[list[float]],
     labels: list[str],
     ylabel: str = "Wall-clock runtime (s)",
     return_fig: bool = False,
@@ -1766,60 +1765,58 @@ def plot_runtime_bar(
     legend_loc: str | None = None,
     show_legend: bool = True,
 ) -> Figure | None:
-    """Bar chart of mean ± std runtimes, one bar per algorithm version."""
+    """Horizontal box plot of runtimes on a log x-axis, one row per algorithm."""
     if colors is None:
         colors = ColorsConfig()
 
     default_colors = [
-        "blue",
-        "red",
-        "green",
-        "orange",
-        "purple",
-        "brown",
-        "pink",
-        "gray",
-        "olive",
-        "cyan",
+        "#4C72B0",
+        "#DD8452",
+        "#55A868",
+        "#C44E52",
+        "#8172B3",
+        "#937860",
+        "#DA8BC3",
+        "#8C8C8C",
+        "#CCB974",
+        "#64B5CD",
     ]
     if color_list is None:
-        color_list = [
-            default_colors[i % len(default_colors)] for i in range(len(means))
-        ]
+        color_list = [default_colors[i % len(default_colors)] for i in range(len(data))]
 
-    fig, ax = plt.subplots(figsize=(max(8, len(means) * 1.2), 5))
+    n = len(labels)
+    fig_h = max(2.5, n * 0.55 + 1.0)
+    fig, ax = plt.subplots(figsize=(5, fig_h))
     fig.patch.set_facecolor(colors.figure_background)
 
-    x = np.arange(len(means))
-    ax.bar(
-        x,
-        means,
-        yerr=stds,
-        capsize=5,
-        color=color_list,
-        alpha=0.8,
-        error_kw={"linewidth": 1.5},
+    bp = ax.boxplot(
+        data,
+        vert=False,
+        patch_artist=True,
+        widths=0.5,
+        flierprops={"marker": "o", "markersize": 3, "linestyle": "none"},
+        medianprops={"color": "black", "linewidth": 1.5},
     )
 
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=11)
-    ax.set_ylabel(ylabel, fontsize=13)
-    ax.grid(True, axis="y", linestyle="--", linewidth=0.5, alpha=0.6)
+    for patch, flier, color in zip(bp["boxes"], bp["fliers"], color_list, strict=False):
+        patch.set_facecolor(color)
+        patch.set_alpha(0.75)
+        flier.set_markerfacecolor(color)
+        flier.set_markeredgecolor(color)
 
-    if show_legend and legend_loc is not None:
-        legend_handles = [
-            Line2D(
-                [0],
-                [0],
-                color=color_list[i],
-                marker="s",
-                linestyle="None",
-                markersize=10,
-                label=labels[i],
-            )
-            for i in range(len(labels))
-        ]
-        ax.legend(handles=legend_handles, loc=legend_loc, fontsize=10, frameon=True)
+    for i, color in enumerate(color_list):
+        for w in bp["whiskers"][2 * i : 2 * i + 2]:
+            w.set_color(color)
+        for c in bp["caps"][2 * i : 2 * i + 2]:
+            c.set_color(color)
+
+    ax.set_xscale("log")
+    ax.set_yticks(range(1, n + 1))
+    ax.set_yticklabels(labels, fontsize=10)
+    ax.set_xlabel("Wall-clock runtime (s)", fontsize=11)
+    ax.grid(True, axis="x", linestyle="--", linewidth=0.4, alpha=0.5)
+    ax.tick_params(axis="x", labelsize=9)
+    ax.invert_yaxis()
 
     plt.tight_layout()
 
@@ -1881,8 +1878,7 @@ def plot_runtime_multiple_versions(
 
     all_runtime_data = group_runtimes_by_seed(environment, outputs_dir)
 
-    means: list[float] = []
-    stds: list[float] = []
+    raw_data: list[list[float]] = []
     labels: list[str] = []
 
     for version_withhyper in versions_withhyper:
@@ -1895,9 +1891,7 @@ def plot_runtime_multiple_versions(
             print(f"Warning: empty runtimes for '{version_withhyper}', skipping.")
             continue
 
-        arr = np.array(runtimes)
-        means.append(float(np.mean(arr)))
-        stds.append(float(np.std(arr)))
+        raw_data.append(list(runtimes))
 
         if label_format == "algorithm":
             label = version_to_algorithm_name(version_withhyper)
@@ -1908,7 +1902,7 @@ def plot_runtime_multiple_versions(
             label = version_withhyper
         labels.append(label)
 
-    if len(means) == 0:
+    if len(raw_data) == 0:
         raise ValueError("No runtime data found for any of the specified versions.")
 
     if fn is None:
@@ -1918,8 +1912,7 @@ def plot_runtime_multiple_versions(
         fn = results_dir / "runtime_comparison.pdf"
 
     return plot_runtime_bar(
-        means=means,
-        stds=stds,
+        data=raw_data,
         labels=labels,
         ylabel=ylabel,
         return_fig=return_fig,

@@ -19,71 +19,32 @@
 
 ## Overview
 
-Bench-MFG provides a unified framework for benchmarking algorithms on Mean Field Game (MFG) environments. It supports multiple solvers configured through [Hydra](https://hydra.cc) and accelerated with [JAX](https://github.com/google/jax).
+Bench-MFG is a unified benchmarking suite for **Mean Field Game (MFG)** algorithms. It covers a diverse set of environments — including the novel **MF Garnet** — and implements both classical and state-of-the-art solvers. Experiments are configured with [Hydra](https://hydra.cc) and hot paths are accelerated with [JAX](https://github.com/google/jax).
 
 ### Environments
 
-<table>
-<thead>
-<tr style="background-color: #4A90E2;">
-<th style="padding: 8px; text-align: left; color: white;"><strong>Environment</strong></th>
-<th style="padding: 8px; text-align: left; color: white;"><strong>Variants</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="padding: 8px;"><strong>No Interaction</strong></td>
-<td style="padding: 8px;">• Move Forward</td>
-</tr>
-<tr>
-<td style="padding: 8px;"><strong>Contractive Game</strong></td>
-<td style="padding: 8px;">• Coordination Game</td>
-</tr>
-<tr>
-<td style="padding: 8px;"><strong>Lasry-Lions Game</strong></td>
-<td style="padding: 8px;">• Beach Bar Problem<br>• <em>(anti)</em> Two Beach Bars</td>
-</tr>
-<tr>
-<td style="padding: 8px;"><strong>Potential Game</strong></td>
-<td style="padding: 8px;">• Four Room Exploration<br>• <em>(anti)</em> RockPaperScissor</td>
-</tr>
-<tr>
-<td style="padding: 8px;"><strong>Dynamics-Coupled Game</strong></td>
-<td style="padding: 8px;">• SIS Epidemic<br>• Kinetic Congestion</td>
-</tr>
-<tr>
-<td style="padding: 8px;"><strong>MF Garnet</strong> <em>(novel!)</em></td>
-<td style="padding: 8px;">• Random Instances</td>
-</tr>
-</tbody>
-</table>
+| Class | Variants |
+|---|---|
+| No Interaction | Move Forward |
+| Contractive Game | Coordination Game |
+| Lasry-Lions Game | Beach Bar Problem · *(anti)* Two Beach Bars |
+| Potential Game | Four Room Exploration · *(anti)* RockPaperScissor |
+| Dynamics-Coupled Game | SIS Epidemic · Kinetic Congestion |
+| **MF Garnet** *(novel)* | Random Instances |
 
 ### Algorithms
 
-<table>
-<thead>
-<tr style="background-color: #FF8C42;">
-<th style="padding: 8px; text-align: left; color: white;"><strong>Category</strong></th>
-<th style="padding: 8px; text-align: left; color: white;"><strong>Algorithms</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="padding: 8px;"><strong>BR-based Fixed Point</strong></td>
-<td style="padding: 8px;">• Fixed Point<br>• Damped Fixed Point<br>• Fictitious Play</td>
-</tr>
-<tr>
-<td style="padding: 8px;"><strong>Policy-Eval. Based</strong></td>
-<td style="padding: 8px;">• Policy Iteration (PI)<br>• Smoothed PI<br>• Boltzmann PI<br>• Online Mirror Descent</td>
-</tr>
-<tr>
-<td style="padding: 8px;"><strong>Exploitability Min.</strong></td>
-<td style="padding: 8px;">• MF-PSO <em>(novel!)</em></td>
-</tr>
-</tbody>
-</table>
+| Category | Algorithms |
+|---|---|
+| BR-based Fixed Point | Fixed Point · Damped Fixed Point · Fictitious Play |
+| Policy-Eval. Based | Policy Iteration · Smoothed PI · Boltzmann PI · Online Mirror Descent |
+| Exploitability Min. | **MF-PSO** *(novel)* |
 
-**Framework Features:** ✓ Hydra · ✓ JAX & Python · ✓ Log, Save and Plot
+### Features
+
+- **Hydra** config — compose and sweep experiments from the CLI
+- **JAX & Python** solvers — run on CPU, GPU, or TPU with minimal changes
+- **Logging & plots** — WandB integration, per-run `.npz` results, and publication-ready figures
 
 ---
 
@@ -104,6 +65,15 @@ Select your algorithm and environment in `conf/defaults.yaml`, then:
 
 ```bash
 python main.py
+```
+
+General way to run an experiment (after selecting algo and env in `conf/defaults.yaml`):
+```bash
+python main.py -m \
+  experiment.name="omd_sweep" \
+  experiment.random_seed=42,10,111,1032 \
+  algorithm.omd.learning_rate=0.5,0.05,0.005 \
+  algorithm.omd.temperature=0.2,0.5,0.8
 ```
 
 For detailed instructions on batch runs see [EXPERIMENTS.md](EXPERIMENTS.md).
