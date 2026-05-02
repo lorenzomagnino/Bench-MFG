@@ -28,6 +28,8 @@ from utility.plot_loaders import (
 )
 import yaml
 
+_DARK_TEAL = "#006D6D"
+
 
 class HandlerMarker(HandlerLine2D):
     """Custom legend handler that shows only the marker, no line."""
@@ -118,15 +120,16 @@ def plot_exploitability(
     fig, ax = plt.subplots(1, 1, figsize=(5, 4))
     fig.patch.set_facecolor(colors.figure_background)
 
-    ax.plot(
-        iterations_plot,
-        exp_plot,
-        linewidth=2,
-        color="blue",
-        alpha=0.8,
-        marker=marker,
-        markersize=marker_size,
-    )
+    ax.plot(iterations_plot, exp_plot, linewidth=2, color=_DARK_TEAL, zorder=2)
+    if marker_size > 0:
+        ax.scatter(
+            iterations_plot,
+            exp_plot,
+            s=marker_size**2,
+            color=_DARK_TEAL,
+            alpha=0.5,
+            zorder=3,
+        )
     ax.set_xlabel(xlabel, fontsize=14)
     ax.set_ylabel(ylabel, fontsize=14)
     ax.tick_params(axis="both", labelsize=12)
@@ -360,21 +363,23 @@ def plot_exploitability_mean_variance(
     fig.patch.set_facecolor(colors.figure_background)
 
     ax.plot(
-        iterations_plot,
-        mean_plot,
-        linewidth=2,
-        color="blue",
-        alpha=0.8,
-        label=label,
-        marker=marker,
-        markersize=marker_size,
+        iterations_plot, mean_plot, linewidth=2, color=_DARK_TEAL, label=label, zorder=2
     )
+    if marker_size > 0:
+        ax.scatter(
+            iterations_plot,
+            mean_plot,
+            s=marker_size**2,
+            color=_DARK_TEAL,
+            alpha=0.5,
+            zorder=3,
+        )
     ax.fill_between(
         iterations_plot,
         mean_plot - std_plot,
         mean_plot + std_plot,
-        alpha=0.3,
-        color="blue",
+        alpha=0.25,
+        color=_DARK_TEAL,
     )
 
     ax.set_xlabel(xlabel, fontsize=14)
