@@ -12,6 +12,7 @@ from matplotlib.figure import Figure
 from matplotlib.legend_handler import HandlerLine2D
 from matplotlib.lines import Line2D
 import matplotlib.pyplot as plt
+from matplotlib.ticker import LogFormatterSciNotation, LogLocator, NullLocator
 import numpy as np
 from utility.MFGPlots import plot_mean_field, plot_policy
 from utility.plot_discovery import (
@@ -77,6 +78,15 @@ def _save_fig(fig: Figure, fn: str | Path | None) -> None:
         plt.savefig(fn, bbox_inches="tight", pad_inches=0.1, dpi=300)
 
 
+def _format_log_y_axis(ax) -> None:
+    """Reduce log-scale y-axis clutter for exploitability plots."""
+    ax.set_yscale("log")
+    ax.yaxis.set_major_locator(LogLocator(base=10.0, numticks=3))
+    ax.yaxis.set_major_formatter(LogFormatterSciNotation(base=10.0))
+    ax.yaxis.set_minor_locator(NullLocator())
+    ax.tick_params(axis="y", which="minor", left=False, right=False)
+
+
 # ---------------------------------------------------------------------------
 # Single-run plot functions
 # ---------------------------------------------------------------------------
@@ -130,9 +140,9 @@ def plot_exploitability(
             alpha=0.5,
             zorder=3,
         )
-    ax.set_xlabel(xlabel, fontsize=14)
-    ax.set_ylabel(ylabel, fontsize=14)
-    ax.tick_params(axis="both", labelsize=12)
+    ax.set_xlabel(xlabel, fontsize=28)
+    ax.set_ylabel(ylabel, fontsize=28)
+    ax.tick_params(axis="both", labelsize=22)
     ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.6)
 
     max_iter = len(iterations) - 1
@@ -143,7 +153,7 @@ def plot_exploitability(
     ax.set_xticks(x_ticks)
 
     if log_scale:
-        ax.set_yscale("log")
+        _format_log_y_axis(ax)
 
     plt.tight_layout()
     _save_fig(fig, fn)
@@ -382,9 +392,9 @@ def plot_exploitability_mean_variance(
         color=_DARK_TEAL,
     )
 
-    ax.set_xlabel(xlabel, fontsize=14)
-    ax.set_ylabel(ylabel, fontsize=14)
-    ax.tick_params(axis="both", labelsize=12)
+    ax.set_xlabel(xlabel, fontsize=28)
+    ax.set_ylabel(ylabel, fontsize=28)
+    ax.tick_params(axis="both", labelsize=22)
     ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.6)
 
     max_iter = len(iterations) - 1
@@ -395,7 +405,7 @@ def plot_exploitability_mean_variance(
     ax.set_xticks(x_ticks)
 
     if log_scale:
-        ax.set_yscale("log")
+        _format_log_y_axis(ax)
 
     if label is not None:
         ax.legend()
@@ -547,10 +557,10 @@ def plot_exploitability_groups(
             color=color,
         )
 
-    axis_label_size = 34 if num_groups > 10 else 22
+    axis_label_size = 34 if num_groups > 10 else 28
     ax.set_xlabel(xlabel, fontsize=axis_label_size)
     ax.set_ylabel(ylabel, fontsize=axis_label_size)
-    tick_labelsize = 26 if num_groups > 10 else 20
+    tick_labelsize = 26 if num_groups > 10 else 22
     ax.tick_params(axis="both", which="major", labelsize=tick_labelsize)
     ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.6)
 
@@ -574,7 +584,7 @@ def plot_exploitability_groups(
     ax.set_xlim(left=-margin, right=max_iteration + margin)
 
     if log_scale:
-        ax.set_yscale("log")
+        _format_log_y_axis(ax)
 
     if legend_loc == "upper right" and show_legend:
         ymin, ymax = ax.get_ylim()
