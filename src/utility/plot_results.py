@@ -5,6 +5,7 @@ from pathlib import Path
 from conf.config_schema import MFGConfig
 from utility.MFGPlots import plot_mean_field, plot_policy
 from utility.path_utils import get_output_directory
+from utility.plot_primitives import plot_exploitability
 
 
 def plot_results(results, cfg: MFGConfig, run_id: str | None = None):
@@ -19,7 +20,7 @@ def plot_results(results, cfg: MFGConfig, run_id: str | None = None):
         Figure object for the mean field plot
         Figure object for the policy plot
     """
-    optimal_policy, mean_field, _ = results
+    optimal_policy, mean_field, exploitabilities = results
 
     base_dir = Path(get_output_directory(cfg))
     output_dir = base_dir / run_id if run_id is not None else base_dir
@@ -29,10 +30,20 @@ def plot_results(results, cfg: MFGConfig, run_id: str | None = None):
     mean_field_fig = None
     policy_fig = None
 
+    plot_exploitability(
+        exploitabilities=exploitabilities,
+        fn=plots_dir / "exploitability.pdf",
+        colors=cfg.visualization.colors,
+    )
+    plot_exploitability(
+        exploitabilities=exploitabilities,
+        fn=plots_dir / "exploitability_log.pdf",
+        log_scale=True,
+        colors=cfg.visualization.colors,
+    )
+
     if cfg.visualization.show_mean_field_evolution:
-        plot_filename_mean_field = (
-            f"{cfg.experiment.name}_{cfg.algorithm._target_.lower()}_mean_field.pdf"
-        )
+        plot_filename_mean_field = "mean_field.pdf"
         plot_path_mean_field = plots_dir / plot_filename_mean_field
         title_mean_field = f"{cfg.environment.name} - {cfg.algorithm._target_} Algorithm\nFinal Mean Field Distribution"
         is_grid = cfg.environment.grid.is_grid
@@ -49,9 +60,7 @@ def plot_results(results, cfg: MFGConfig, run_id: str | None = None):
             colors=cfg.visualization.colors,
         )
     if cfg.visualization.show_policy_evolution:
-        plot_filename_policy = (
-            f"{cfg.experiment.name}_{cfg.algorithm._target_.lower()}_policy.pdf"
-        )
+        plot_filename_policy = "policy.pdf"
         plot_path_policy = plots_dir / plot_filename_policy
         is_grid = cfg.environment.grid.is_grid
         grid_dim = cfg.environment.grid.dimension if is_grid else None

@@ -255,7 +255,7 @@ def upload_mean_field_plot(
         if fig is not None:
             base_dir = Path(get_output_directory(cfg))
             output_dir = base_dir / run_id if run_id is not None else base_dir
-            temp_plot_path = output_dir / "plots" / "mean_field_distribution.pdf"
+            temp_plot_path = output_dir / "plots" / "mean_field.pdf"
             temp_plot_path.parent.mkdir(parents=True, exist_ok=True)
             fig.savefig(
                 str(temp_plot_path), bbox_inches="tight", pad_inches=0.1, format="pdf"
@@ -270,9 +270,7 @@ def upload_mean_field_plot(
                 plots_dir = base_dir / run_id / "plots"
             else:
                 plots_dir = base_dir / "plots"
-            plot_filename_mean_field = (
-                f"{cfg.experiment.name}_{cfg.algorithm._target_.lower()}_mean_field.pdf"
-            )
+            plot_filename_mean_field = "mean_field.pdf"
             plot_path_mean_field = plots_dir / plot_filename_mean_field
 
             if plot_path_mean_field.exists():
@@ -304,7 +302,7 @@ def upload_policy_plot(
         if fig is not None:
             base_dir = Path(get_output_directory(cfg))
             output_dir = base_dir / run_id if run_id is not None else base_dir
-            temp_plot_path = output_dir / "plots" / "policy_distribution.pdf"
+            temp_plot_path = output_dir / "plots" / "policy.pdf"
             temp_plot_path.parent.mkdir(parents=True, exist_ok=True)
             fig.savefig(
                 str(temp_plot_path), bbox_inches="tight", pad_inches=0.1, format="pdf"
@@ -319,9 +317,7 @@ def upload_policy_plot(
                 plots_dir = base_dir / run_id / "plots"
             else:
                 plots_dir = base_dir / "plots"
-            plot_filename_policy = (
-                f"{cfg.experiment.name}_{cfg.algorithm._target_.lower()}_policy.pdf"
-            )
+            plot_filename_policy = "policy.pdf"
             plot_path_policy = plots_dir / plot_filename_policy
 
             if plot_path_policy.exists():

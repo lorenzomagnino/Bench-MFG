@@ -36,7 +36,6 @@ def plot_run(
     is_grid: bool = False,
     grid_dim: tuple | None = None,
     walls=None,
-    log_scale: bool = False,
 ) -> None:
     """Plot all result artifacts from a single run directory.
 
@@ -45,14 +44,24 @@ def plot_run(
         is_grid: Whether the environment is a 2D grid.
         grid_dim: (n_rows, n_cols) for grid environments.
         walls: Optional wall mask array for grid environments.
-        log_scale: Use log scale for the exploitability y-axis.
+        Saves both linear and log-scale exploitability plots.
     """
     run_dir = Path(run_dir)
 
     exploitability_npz = run_dir / "exploitabilities.npz"
     if exploitability_npz.exists():
-        plot_exploitability_from_npz(exploitability_npz, log_scale=log_scale)
+        plot_exploitability_from_npz(
+            exploitability_npz,
+            fn=run_dir / "plots" / "exploitability.pdf",
+            log_scale=False,
+        )
+        plot_exploitability_from_npz(
+            exploitability_npz,
+            fn=run_dir / "plots" / "exploitability_log.pdf",
+            log_scale=True,
+        )
         print(f"Exploitability → {run_dir / 'plots' / 'exploitability.pdf'}")
+        print(f"Exploitability → {run_dir / 'plots' / 'exploitability_log.pdf'}")
     else:
         print(f"Skipping exploitability: {exploitability_npz} not found")
 
@@ -90,9 +99,6 @@ if __name__ == "__main__":
         "run_dir", type=str, help="Path to the timestamped run directory"
     )
     parser.add_argument(
-        "--log-scale", action="store_true", help="Log scale for exploitability y-axis"
-    )
-    parser.add_argument(
         "--is-grid", action="store_true", help="Environment is a 2D grid"
     )
     parser.add_argument(
@@ -113,5 +119,4 @@ if __name__ == "__main__":
         run_dir=args.run_dir,
         is_grid=args.is_grid,
         grid_dim=grid_dim,
-        log_scale=args.log_scale,
     )
