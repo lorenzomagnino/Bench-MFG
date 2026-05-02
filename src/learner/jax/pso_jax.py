@@ -79,7 +79,7 @@ class PSO_jax:
         self.init_policy_temp = (
             init_policy_temp if init_policy_temp is not None else temperature
         )
-        self.positions_evolution = []  # To store logits evolution over iterations
+        self.positions_evolution: list[np.ndarray] = []
         self.initialization_type = initialization_type
         self.shuffle_type = shuffle
         self.policy_type = policy_type  # mellowmax or softmax

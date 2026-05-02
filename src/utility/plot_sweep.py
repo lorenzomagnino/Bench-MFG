@@ -144,8 +144,8 @@ def plot_exploitability_by_algorithm(
         arrays = [np.array(e) for e in combined]
         max_len = max(len(e) for e in arrays)
         padded = np.full((len(arrays), max_len), np.nan)
-        for i, e in enumerate(arrays):
-            padded[i, : len(e)] = e
+        for i, arr in enumerate(arrays):
+            padded[i, : len(arr)] = arr
         final_means[version_withhyper] = float(np.nanmean(padded, axis=0)[-1])
 
     if final_means:
