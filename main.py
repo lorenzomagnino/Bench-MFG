@@ -32,7 +32,7 @@ log = logging.getLogger(__name__)
 @hydra.main(version_base=None, config_path="config", config_name="defaults")
 def main(cfg: MFGConfig) -> None:
     """Main execution function with Hydra configuration management."""
-    print_config_table(cfg, style="table")
+    print_config_table(cfg, style="tree")
     np.random.seed(cfg.experiment.random_seed)
     environment, initial_policy = create_environment(cfg)
 

@@ -46,7 +46,7 @@ def print_config_tree(cfg: MFGConfig) -> None:
         full_path = f"{path}.{key}" if path else key
 
         if OmegaConf.is_dict(value):
-            node = parent.add(f"[bold cyan]{key}[/bold cyan]", style="dim")
+            node = parent.add(f"[bold cyan]{key}[/bold cyan]")
             for k, v in value.items():
                 add_node(node, k, v, full_path)
         elif OmegaConf.is_list(value):
@@ -75,7 +75,7 @@ def print_config_tree(cfg: MFGConfig) -> None:
                 formatted_value = format_value(value)
             parent.add(f"[bold]{key}[/bold]: {formatted_value}")
 
-    for key, value in cfg.__dict__.items():
+    for key, value in cfg.items():
         add_node(tree, str(key), value)
 
     console.print(tree)

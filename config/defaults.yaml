@@ -4,9 +4,9 @@
 defaults:
   - _self_
 # ----- ALGORITHMS -----
-  - algorithm/damped_fixed_point
+  # - algorithm/damped_fixed_point
   # - algorithm/pi
-  # - algorithm/omd
+  - algorithm/omd
   # - algorithm/pso
 # ----- ENVIRONMENTS -----
   # - environment/no_interaction_game
@@ -22,6 +22,8 @@ defaults:
   - experiment/experiment
   - logging/logging
   - visualization/visualization
+
+device: "cpu"
 
 initialization:
   initialization_type: "PSO_uniform"
