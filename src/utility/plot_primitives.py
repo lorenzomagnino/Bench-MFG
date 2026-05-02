@@ -635,13 +635,13 @@ def plot_exploitability_groups(
             nrows = (num_groups + ncol - 1) // ncol
 
             if nrows > 6:
-                y_offset, fontsize = -0.22, 24
+                y_offset, fontsize = -0.30, 24
             elif nrows > 4:
-                y_offset, fontsize = -0.19, 25
+                y_offset, fontsize = -0.27, 25
             elif nrows > 2:
-                y_offset, fontsize = -0.16, 26
+                y_offset, fontsize = -0.24, 26
             else:
-                y_offset, fontsize = -0.13, 27
+                y_offset, fontsize = -0.21, 27
 
             ax.legend(
                 loc="upper center",
@@ -662,13 +662,13 @@ def plot_exploitability_groups(
     else:
         nrows = (num_groups + 1) // 2
         if nrows > 6:
-            plt.tight_layout(rect=(0, 0.25, 1, 1))
+            plt.tight_layout(rect=(0, 0.36, 1, 1))
         elif nrows > 4:
-            plt.tight_layout(rect=(0, 0.22, 1, 1))
+            plt.tight_layout(rect=(0, 0.33, 1, 1))
         elif nrows > 2:
-            plt.tight_layout(rect=(0, 0.19, 1, 1))
+            plt.tight_layout(rect=(0, 0.30, 1, 1))
         else:
-            plt.tight_layout(rect=(0, 0.15, 1, 1))
+            plt.tight_layout(rect=(0, 0.27, 1, 1))
 
     if external_ax:
         return fig if return_fig else None
@@ -703,6 +703,8 @@ def plot_exploitability_multiple_versions(
     show_legend: bool = True,
     label_format: str = "algorithm",
     best_version: str | None = None,
+    best_model_yaml_path: str | Path | None = None,
+    write_best_model_yaml: bool = True,
     plot_every_n: int = 1,
     marker: str | None = None,
     marker_list: list[str] | None = None,
@@ -787,7 +789,7 @@ def plot_exploitability_multiple_versions(
     if len(exploitabilities_groups) == 0:
         raise ValueError("No valid exploitability data found for any version")
 
-    if final_means:
+    if final_means and write_best_model_yaml:
         sorted_versions = sorted(final_means.items(), key=lambda x: x[1])
         best_version_name = sorted_versions[0][0]
         best_final_mean = sorted_versions[0][1]
@@ -795,14 +797,29 @@ def plot_exploitability_multiple_versions(
             f"\nBest model: {best_version_name} with final mean exploitability: {best_final_mean:.6f}"
         )
 
-        project_root = Path(__file__).parent.parent
-        results_dir = project_root / "results" / environment / "best"
-        results_dir.mkdir(parents=True, exist_ok=True)
-        yaml_path = results_dir / "best_model.yaml"
+        if best_model_yaml_path is None:
+            project_root = Path(__file__).parent.parent
+            results_dir = project_root / "results" / environment / "best"
+            results_dir.mkdir(parents=True, exist_ok=True)
+            yaml_path = results_dir / "best_model.yaml"
+        else:
+            yaml_path = Path(best_model_yaml_path)
+            yaml_path.parent.mkdir(parents=True, exist_ok=True)
+        best_seed_records = all_groups[best_version_name].get("seed_records", [])
+        final_values = [
+            seed_record["final_exploitability"] for seed_record in best_seed_records
+        ]
         yaml_data = {
             "environment": environment,
+            "algorithm": all_groups[best_version_name].get("algorithm"),
+            "selection_policy": "latest_run",
             "best_version": best_version_name,
+            "num_seeds": len(best_seed_records),
             "final_mean_exploitability": float(best_final_mean),
+            "final_std_exploitability": (
+                float(np.std(final_values)) if final_values else 0.0
+            ),
+            "seeds": best_seed_records,
             "all_versions": [
                 {"version": v, "final_mean_exploitability": float(e)}
                 for v, e in sorted_versions

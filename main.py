@@ -35,27 +35,6 @@ from utility.wandb_logger import (  # noqa: E402
 log = logging.getLogger(__name__)
 
 
-@hydra.main(version_base=None, config_path="config", config_name="defaults")
-def main(cfg: MFGConfig) -> None:
-    """Main execution function with Hydra configuration management."""
-    print_config_table(cfg, style="tree")
-    np.random.seed(cfg.experiment.random_seed)
-    log.info("Using DEVICE: %s", cfg.device)
-    environment, initial_policy = create_environment(cfg)
-
-    initial_mean_field = environment.mean_field_by_transition_kernel(
-        initial_policy, num_transition_steps=20
-    )
-    initial_mean_field = initial_mean_field / initial_mean_field.sum()
-    solver = create_solver(environment, initial_policy, cfg)
-    if cfg.experiment.mode == 1:
-        train_model(solver, cfg, initial_policy, initial_mean_field)
-    else:
-        log.info("Rollout mode not implemented yet")
-
-    log.info("Experiment completed successfully✅")
-
-
 def train_model(
     solver, cfg: MFGConfig, initial_policy=None, initial_mean_field=None
 ) -> None:
@@ -130,6 +109,27 @@ def _print_plot_commands(cfg: MFGConfig, run_id: str) -> None:
             f"  PYTHONPATH=src python -m utility.plot_single_run {run_dir}{grid_flags}\n"
             f"{sep}\n"
         )
+
+
+@hydra.main(version_base=None, config_path="config", config_name="defaults")
+def main(cfg: MFGConfig) -> None:
+    """Main execution function with Hydra configuration management."""
+    print_config_table(cfg, style="tree")
+    np.random.seed(cfg.experiment.random_seed)
+    log.info("Using DEVICE: %s", cfg.device)
+    environment, initial_policy = create_environment(cfg)
+
+    initial_mean_field = environment.mean_field_by_transition_kernel(
+        initial_policy, num_transition_steps=20
+    )
+    initial_mean_field = initial_mean_field / initial_mean_field.sum()
+    solver = create_solver(environment, initial_policy, cfg)
+    if cfg.experiment.mode == 1:
+        train_model(solver, cfg, initial_policy, initial_mean_field)
+    else:
+        log.info("Rollout mode not implemented yet")
+
+    log.info("Experiment completed successfully✅")
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ Usage:
     PYTHONPATH=src python src/utility/plot_sweep.py <environment> <algorithm> [options]
 
 Scans outputs/{environment}/{algorithm}/ for all hyperparameter versions, plots
-mean ± std exploitability for each, and saves a ranking YAML for use by plot_comparison.
+mean ± std exploitability for each, and saves YAML artifacts for use by plot_comparison.
 
 Example:
     PYTHONPATH=src python -m utility.plot_sweep LasryLionsChain PSO --log-scale
@@ -28,8 +28,9 @@ from matplotlib.figure import Figure  # noqa: E402
 import numpy as np  # noqa: E402
 from utility.plot_discovery import (  # noqa: E402
     ALGORITHMS,
-    get_versions_for_algorithm,
+    build_results_yaml_for_algorithm,
     group_exploitabilities_by_seed,
+    write_best_model_yaml,
 )
 from utility.plot_primitives import (  # noqa: E402
     plot_exploitability_mean_variance,
@@ -113,12 +114,17 @@ def plot_exploitability_by_algorithm(
     """Plot all hyperparameter versions for one algorithm.
 
     For each version, combines all seeds and plots mean ± std. All versions are
-    shown on the same figure. Also writes results/{environment}/{algorithm}_best_models.yaml
-    with a ranked list that plot_comparison.py uses.
+    shown on the same figure. Also writes results/{environment}/{algorithm}/results.yaml
+    and results/{environment}/{algorithm}/best_model.yaml for downstream plotting.
 
     If there are more than 20 versions, splits into two figures (part1 / part2).
     """
-    versions_withhyper = get_versions_for_algorithm(environment, algorithm, outputs_dir)
+    results_data = build_results_yaml_for_algorithm(environment, algorithm, outputs_dir)
+    best_model_data = write_best_model_yaml(results_data, environment, algorithm)
+    versions_withhyper = [
+        configuration["version"]
+        for configuration in results_data.get("configurations", [])
+    ]
 
     if len(versions_withhyper) == 0:
         raise ValueError(
@@ -129,24 +135,14 @@ def plot_exploitability_by_algorithm(
         f"Found {len(versions_withhyper)} versions for {algorithm}: {versions_withhyper}"
     )
 
-    all_groups = group_exploitabilities_by_seed(environment, outputs_dir)
+    project_root = Path(__file__).parent.parent
+    algo_results_dir = project_root / "results" / environment / algorithm
+    algo_results_dir.mkdir(parents=True, exist_ok=True)
 
-    final_means: dict[str, float] = {}
-    for version_withhyper in versions_withhyper:
-        if version_withhyper not in all_groups:
-            continue
-        version_data = all_groups[version_withhyper]
-        combined: list[np.ndarray] = []
-        for sg in version_data["groups"]:
-            combined.extend(sg)
-        if not combined:
-            continue
-        arrays = [np.array(e) for e in combined]
-        max_len = max(len(e) for e in arrays)
-        padded = np.full((len(arrays), max_len), np.nan)
-        for i, arr in enumerate(arrays):
-            padded[i, : len(arr)] = arr
-        final_means[version_withhyper] = float(np.nanmean(padded, axis=0)[-1])
+    final_means = {
+        configuration["version"]: float(configuration["final_mean_exploitability"])
+        for configuration in results_data.get("configurations", [])
+    }
 
     if final_means:
         sorted_versions = sorted(final_means.items(), key=lambda x: x[1])
@@ -157,36 +153,13 @@ def plot_exploitability_by_algorithm(
         print("-" * 76)
         for rank, (v, e) in enumerate(sorted_versions, 1):
             print(f"{rank:<6} {v:<50} {e:.6f}")
+        print(f"\nResults saved to: {algo_results_dir / 'results.yaml'}")
+        print(f"Best model saved to: {algo_results_dir / 'best_model.yaml'}")
 
-        import yaml
-
-        project_root = Path(__file__).parent.parent
-        results_dir = project_root / "results" / environment
-        results_dir.mkdir(parents=True, exist_ok=True)
-        safe_algo = algorithm.replace("/", "_").replace("\\", "_")
-        yaml_path = results_dir / f"{safe_algo}_best_models.yaml"
-        yaml_data = {
-            "algorithm": algorithm,
-            "environment": environment,
-            "best_models": [
-                {"rank": rank, "version": v, "final_exploitability": float(e)}
-                for rank, (v, e) in enumerate(sorted_versions, 1)
-            ],
-        }
-        with open(yaml_path, "w") as f:
-            yaml.dump(yaml_data, f, default_flow_style=False, sort_keys=False)
-        print(f"\nBest models saved to: {yaml_path}")
-
-    best_version_for_legend = (
-        sorted(final_means.items(), key=lambda x: x[1])[0][0] if final_means else None
-    )
+    best_version_for_legend = best_model_data["best_version"] if final_means else None
 
     if fn is None:
-        project_root = Path(__file__).parent.parent
-        results_dir = project_root / "results" / environment
-        results_dir.mkdir(parents=True, exist_ok=True)
-        safe_algo = algorithm.replace("/", "_").replace("\\", "_")
-        fn = results_dir / f"{safe_algo}_all_versions.pdf"
+        fn = algo_results_dir / "exploitability.pdf"
 
     max_per_plot = 20
     if len(versions_withhyper) > max_per_plot:
@@ -224,12 +197,14 @@ def plot_exploitability_by_algorithm(
             show_legend=show_legend,
             label_format="hyperparameters",
             best_version=bv_part1,
+            best_model_yaml_path=algo_results_dir / "best_model.yaml",
+            write_best_model_yaml=False,
             plot_every_n=plot_every_n,
             marker=marker,
         )
         print(f"Saved part 1 to: {fn_part1}")
 
-        return plot_exploitability_multiple_versions(
+        fig = plot_exploitability_multiple_versions(
             environment=environment,
             versions_withhyper=v_part2,
             outputs_dir=outputs_dir,
@@ -244,11 +219,16 @@ def plot_exploitability_by_algorithm(
             show_legend=show_legend,
             label_format="hyperparameters",
             best_version=bv_part2,
+            best_model_yaml_path=algo_results_dir / "best_model.yaml",
+            write_best_model_yaml=False,
             plot_every_n=plot_every_n,
             marker=marker,
         )
+        print(f"Saved part 2 to: {fn_part2}")
+        print(f"Sweep artifacts saved to: {algo_results_dir}")
+        return fig
     else:
-        return plot_exploitability_multiple_versions(
+        fig = plot_exploitability_multiple_versions(
             environment=environment,
             versions_withhyper=versions_withhyper,
             outputs_dir=outputs_dir,
@@ -263,9 +243,13 @@ def plot_exploitability_by_algorithm(
             show_legend=show_legend,
             label_format="hyperparameters",
             best_version=best_version_for_legend,
+            best_model_yaml_path=algo_results_dir / "best_model.yaml",
+            write_best_model_yaml=False,
             plot_every_n=plot_every_n,
             marker=marker,
         )
+        print(f"Sweep artifacts saved to: {algo_results_dir}")
+        return fig
 
 
 if __name__ == "__main__":

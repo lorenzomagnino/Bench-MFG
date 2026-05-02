@@ -11,10 +11,185 @@ import yaml
 ALGORITHMS = [
     "PSO",
     "OMD",
+    "DampedFP_damped",
+    "DampedFP_fictitious_play",
+    "DampedFP_pure",
+    "PI_policy_iteration",
     "PI_smooth_policy_iteration",
     "PI_boltzmann_policy_iteration",
-    "DampedFP_damped",
 ]
+
+DEFAULT_COMPARISON_ALGORITHMS = dict.fromkeys(ALGORITHMS, True)
+
+
+def _get_environment_results_dir(
+    environment: str, results_dir: str | Path | None = None
+) -> Path:
+    """Return the results directory for one environment."""
+    if results_dir is None:
+        project_root = Path(__file__).parent.parent
+        return project_root / "results" / environment
+    return Path(results_dir) / environment
+
+
+def _get_algorithm_results_dir(
+    environment: str, algorithm: str, results_dir: str | Path | None = None
+) -> Path:
+    """Return the results directory for one environment/algorithm."""
+    return _get_environment_results_dir(environment, results_dir) / algorithm
+
+
+def _latest_timestamp_dir(version_dir: Path) -> Path | None:
+    """Return the latest timestamped run directory that contains exploitability data."""
+    candidates = [
+        path
+        for path in version_dir.iterdir()
+        if path.is_dir() and (path / "exploitabilities.npz").exists()
+    ]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda path: (path.stat().st_mtime, path.name))
+
+
+def _write_yaml(path: Path, data: dict[str, Any]) -> None:
+    """Write YAML data to disk."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w") as f:
+        yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+
+
+def build_results_yaml_for_algorithm(
+    environment: str,
+    algorithm: str,
+    outputs_dir: str | Path = "outputs",
+    results_dir: str | Path | None = None,
+) -> dict[str, Any]:
+    """Build `results.yaml` for one algorithm using the latest run per seed/config."""
+    outputs_dir = Path(outputs_dir)
+    algorithm_dir = outputs_dir / environment / algorithm
+
+    if not algorithm_dir.exists():
+        raise FileNotFoundError(f"Algorithm directory not found: {algorithm_dir}")
+
+    configurations: list[dict[str, Any]] = []
+    version_names: set[str] = set()
+    for seed_dir in algorithm_dir.iterdir():
+        if not seed_dir.is_dir() or not seed_dir.name.startswith("seed_"):
+            continue
+        for version_dir in seed_dir.iterdir():
+            if version_dir.is_dir():
+                version_names.add(version_dir.name)
+
+    for version_name in sorted(version_names):
+        seeds: list[dict[str, Any]] = []
+        for seed_dir in sorted(algorithm_dir.iterdir()):
+            if not seed_dir.is_dir() or not seed_dir.name.startswith("seed_"):
+                continue
+            version_dir = seed_dir / version_name
+            if not version_dir.exists():
+                continue
+            latest_run_dir = _latest_timestamp_dir(version_dir)
+            if latest_run_dir is None:
+                continue
+            exploitabilities = load_exploitabilities(
+                latest_run_dir / "exploitabilities.npz"
+            )
+            metrics_path = latest_run_dir / "metrics.npz"
+            runtime_s = load_runtime(metrics_path) if metrics_path.exists() else None
+            seeds.append(
+                {
+                    "seed": seed_dir.name,
+                    "run_id": latest_run_dir.name,
+                    "runtime_s": float(runtime_s) if runtime_s is not None else None,
+                    "exploitabilities": [float(value) for value in exploitabilities],
+                    "final_exploitability": float(exploitabilities[-1]),
+                }
+            )
+
+        if not seeds:
+            continue
+
+        final_values = np.array([seed["final_exploitability"] for seed in seeds])
+        configurations.append(
+            {
+                "version": version_name,
+                "seeds": seeds,
+                "num_seeds": len(seeds),
+                "final_mean_exploitability": float(np.mean(final_values)),
+                "final_std_exploitability": float(np.std(final_values)),
+            }
+        )
+
+    configurations.sort(key=lambda config: config["final_mean_exploitability"])
+
+    results_data = {
+        "environment": environment,
+        "algorithm": algorithm,
+        "selection_policy": "latest_run",
+        "configurations": configurations,
+    }
+    results_path = (
+        _get_algorithm_results_dir(environment, algorithm, results_dir) / "results.yaml"
+    )
+    _write_yaml(results_path, results_data)
+    return results_data
+
+
+def write_best_model_yaml(
+    results_data: dict[str, Any],
+    environment: str,
+    algorithm: str,
+    results_dir: str | Path | None = None,
+) -> dict[str, Any]:
+    """Write `best_model.yaml` from algorithm `results.yaml` data."""
+    configurations = results_data.get("configurations", [])
+    if not configurations:
+        raise ValueError(
+            f"No configuration data available for algorithm '{algorithm}' in environment '{environment}'."
+        )
+
+    best_configuration = configurations[0]
+    best_model_data = {
+        "environment": environment,
+        "algorithm": algorithm,
+        "selection_policy": "latest_run",
+        "best_version": best_configuration["version"],
+        "num_seeds": best_configuration["num_seeds"],
+        "final_mean_exploitability": best_configuration["final_mean_exploitability"],
+        "final_std_exploitability": best_configuration["final_std_exploitability"],
+        "seeds": best_configuration["seeds"],
+        "all_versions": [
+            {
+                "version": configuration["version"],
+                "final_mean_exploitability": configuration["final_mean_exploitability"],
+            }
+            for configuration in configurations
+        ],
+    }
+    best_model_path = (
+        _get_algorithm_results_dir(environment, algorithm, results_dir)
+        / "best_model.yaml"
+    )
+    _write_yaml(best_model_path, best_model_data)
+    return best_model_data
+
+
+def load_algorithm_results_yaml(
+    environment: str,
+    algorithm: str,
+    results_dir: str | Path | None = None,
+) -> dict[str, Any]:
+    """Load `results.yaml` for one algorithm."""
+    yaml_path = (
+        _get_algorithm_results_dir(environment, algorithm, results_dir) / "results.yaml"
+    )
+    if not yaml_path.exists():
+        raise FileNotFoundError(f"Algorithm results YAML not found: {yaml_path}")
+    with open(yaml_path) as f:
+        data = yaml.safe_load(f)
+    if not data or "configurations" not in data:
+        raise ValueError(f"Invalid results YAML: {yaml_path}")
+    return data
 
 
 def version_to_algorithm_dir(version_withhyper: str) -> str:
@@ -128,100 +303,62 @@ def extract_hyperparameters(version_withhyper: str) -> str:
 def group_exploitabilities_by_seed(
     environment: str,
     outputs_dir: str | Path = "outputs",
+    results_dir: str | Path | None = None,
 ) -> dict[str, dict[str, Any]]:
-    """Group exploitabilities by version and seed.
-
-    Scans outputs/{environment}/**/exploitabilities.npz and organises results as:
-        {version_withhyper: {"groups": [[exp_seed0_run0, ...], [exp_seed1_run0, ...]], "seed_names": [...]}}
-    """
-    outputs_dir = Path(outputs_dir)
-    env_dir = outputs_dir / environment
-
-    if not env_dir.exists():
-        raise FileNotFoundError(f"Environment directory not found: {env_dir}")
-
-    version_groups: dict[str, dict[str, list[np.ndarray]]] = {}
-
-    for algorithm_dir in env_dir.iterdir():
-        if not algorithm_dir.is_dir():
-            continue
-        for seed_dir in algorithm_dir.iterdir():
-            if not seed_dir.is_dir() or not seed_dir.name.startswith("seed_"):
-                continue
-            seed_name = seed_dir.name
-            for version_dir in seed_dir.iterdir():
-                if not version_dir.is_dir():
-                    continue
-                version_name = version_dir.name
-                version_groups.setdefault(version_name, {})
-                version_groups[version_name].setdefault(seed_name, [])
-                for timestamp_dir in version_dir.iterdir():
-                    if not timestamp_dir.is_dir():
-                        continue
-                    exp_path = timestamp_dir / "exploitabilities.npz"
-                    if exp_path.exists():
-                        try:
-                            version_groups[version_name][seed_name].append(
-                                load_exploitabilities(exp_path)
-                            )
-                        except Exception as e:
-                            print(f"Warning: Failed to load {exp_path}: {e}")
+    """Group exploitabilities by version and seed from `results.yaml` files."""
+    env_results_dir = _get_environment_results_dir(environment, results_dir)
+    if not env_results_dir.exists():
+        raise FileNotFoundError(
+            f"Environment results directory not found: {env_results_dir}"
+        )
 
     result: dict[str, dict[str, Any]] = {}
-    for version_name, seed_dict in version_groups.items():
-        sorted_seeds = sorted(seed_dict.keys())
-        result[version_name] = {
-            "groups": [seed_dict[s] for s in sorted_seeds],
-            "seed_names": sorted_seeds,
-        }
+    for yaml_path in sorted(env_results_dir.glob("*/results.yaml")):
+        with open(yaml_path) as f:
+            yaml_data = yaml.safe_load(f)
+        if not yaml_data:
+            continue
+        algorithm = yaml_data.get("algorithm")
+        for configuration in yaml_data.get("configurations", []):
+            version_name = configuration["version"]
+            seed_records = list(configuration.get("seeds", []))
+            seed_records.sort(key=lambda record: record["seed"])
+            result[version_name] = {
+                "groups": [
+                    [np.array(seed_record["exploitabilities"], dtype=float)]
+                    for seed_record in seed_records
+                ],
+                "seed_names": [seed_record["seed"] for seed_record in seed_records],
+                "seed_records": seed_records,
+                "final_mean_exploitability": configuration.get(
+                    "final_mean_exploitability"
+                ),
+                "algorithm": algorithm,
+            }
     return result
 
 
 def group_runtimes_by_seed(
     environment: str,
     outputs_dir: str | Path = "outputs",
+    results_dir: str | Path | None = None,
 ) -> dict[str, dict[str, Any]]:
-    """Group wall-clock runtimes by version and seed.
-
-    Returns:
-        {version_withhyper: {"runtimes": [float, ...], "seed_names": [str, ...]}}
-    """
-    outputs_dir = Path(outputs_dir)
-    env_dir = outputs_dir / environment
-
-    if not env_dir.exists():
-        raise FileNotFoundError(f"Environment directory not found: {env_dir}")
-
-    version_data: dict[str, dict[str, list]] = {}
-
-    for algorithm_dir in env_dir.iterdir():
-        if not algorithm_dir.is_dir():
-            continue
-        for seed_dir in algorithm_dir.iterdir():
-            if not seed_dir.is_dir() or not seed_dir.name.startswith("seed_"):
-                continue
-            seed_name = seed_dir.name
-            for version_dir in seed_dir.iterdir():
-                if not version_dir.is_dir():
-                    continue
-                version_name = version_dir.name
-                version_data.setdefault(version_name, {"runtimes": [], "seeds": []})
-                for timestamp_dir in version_dir.iterdir():
-                    if not timestamp_dir.is_dir():
-                        continue
-                    metrics_path = timestamp_dir / "metrics.npz"
-                    if metrics_path.exists():
-                        try:
-                            rt = load_runtime(metrics_path)
-                            version_data[version_name]["runtimes"].append(rt)
-                            version_data[version_name]["seeds"].append(seed_name)
-                        except Exception as e:
-                            print(f"Warning: Failed to load {metrics_path}: {e}")
-
-    return {
-        v: {"runtimes": d["runtimes"], "seed_names": sorted(set(d["seeds"]))}
-        for v, d in version_data.items()
-    }
+    """Group wall-clock runtimes by version and seed from `results.yaml` files."""
+    exploitability_groups = group_exploitabilities_by_seed(
+        environment, outputs_dir=outputs_dir, results_dir=results_dir
+    )
+    result: dict[str, dict[str, Any]] = {}
+    for version_name, version_data in exploitability_groups.items():
+        runtimes = [
+            seed_record["runtime_s"]
+            for seed_record in version_data.get("seed_records", [])
+            if seed_record.get("runtime_s") is not None
+        ]
+        result[version_name] = {
+            "runtimes": runtimes,
+            "seed_names": version_data.get("seed_names", []),
+        }
+    return result
 
 
 def get_versions_for_algorithm(
@@ -229,29 +366,12 @@ def get_versions_for_algorithm(
     algorithm: str,
     outputs_dir: str | Path = "outputs",
 ) -> list[str]:
-    """Return all version_withhyper names that have exploitabilities data for an algorithm."""
-    outputs_dir = Path(outputs_dir)
-    algorithm_dir = outputs_dir / environment / algorithm
-
-    if not algorithm_dir.exists():
-        raise FileNotFoundError(f"Algorithm directory not found: {algorithm_dir}")
-
-    versions_set: set[str] = set()
-    for seed_dir in algorithm_dir.iterdir():
-        if not seed_dir.is_dir() or not seed_dir.name.startswith("seed_"):
-            continue
-        for version_dir in seed_dir.iterdir():
-            if not version_dir.is_dir():
-                continue
-            has_data = any(
-                (ts_dir / "exploitabilities.npz").exists()
-                for ts_dir in version_dir.iterdir()
-                if ts_dir.is_dir()
-            )
-            if has_data:
-                versions_set.add(version_dir.name)
-
-    return sorted(versions_set)
+    """Return all version names listed in `results.yaml` for one algorithm."""
+    results_data = load_algorithm_results_yaml(environment, algorithm)
+    return [
+        configuration["version"]
+        for configuration in results_data.get("configurations", [])
+    ]
 
 
 def get_versions_for_comparison(
@@ -279,7 +399,10 @@ def get_versions_for_comparison(
 
     best_from_yaml: list[str] = []
     if results_dir.exists():
-        for yaml_file in results_dir.glob("*_best_models.yaml"):
+        yaml_files = list(results_dir.glob("*/best_models.yaml")) + list(
+            results_dir.glob("*_best_models.yaml")
+        )
+        for yaml_file in yaml_files:
             try:
                 with open(yaml_file) as f:
                     yaml_data = yaml.safe_load(f)
@@ -295,6 +418,48 @@ def get_versions_for_comparison(
                 print(f"Warning: Failed to load {yaml_file}: {e}")
 
     return list(dict.fromkeys(fixed_versions + best_from_yaml))
+
+
+def get_best_versions_by_algorithm(
+    environment: str,
+    algorithms: list[str] | None = None,
+    results_dir: str | Path | None = None,
+) -> tuple[dict[str, str], list[str]]:
+    """Return best version per algorithm and a list of missing algorithms."""
+    if algorithms is None:
+        algorithms = list(DEFAULT_COMPARISON_ALGORITHMS.keys())
+
+    if results_dir is None:
+        project_root = Path(__file__).parent.parent
+        results_dir = project_root / "results" / environment
+    else:
+        results_dir = Path(results_dir) / environment
+
+    best_versions: dict[str, str] = {}
+    missing_algorithms: list[str] = []
+
+    for algorithm in algorithms:
+        yaml_path = results_dir / algorithm / "best_model.yaml"
+
+        if not yaml_path.exists():
+            missing_algorithms.append(algorithm)
+            continue
+
+        try:
+            with open(yaml_path) as f:
+                yaml_data = yaml.safe_load(f)
+        except Exception:
+            missing_algorithms.append(algorithm)
+            continue
+
+        version = yaml_data.get("best_version") if yaml_data else None
+        if version is None:
+            missing_algorithms.append(algorithm)
+            continue
+
+        best_versions[algorithm] = version
+
+    return best_versions, missing_algorithms
 
 
 def get_four_rooms_walls(grid_dim: tuple) -> np.ndarray:
