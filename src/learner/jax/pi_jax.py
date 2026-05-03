@@ -119,8 +119,6 @@ class PI_jax:
             num_iterations=20,
             initial_mean_field=current_stationary_mf,
         )
-        initial_mean_field_host = np.asarray(initial_mean_field)
-        self.env_spec.environment.stationary_mean_field = initial_mean_field_host.copy()
 
         initial_q_values = Q_eval_jax(
             initial_policy,
@@ -181,14 +179,11 @@ class PI_jax:
                     pi_components.q_values, self.temperature
                 )
 
-            current_stationary_mf = self._put(
-                self.env_spec.environment.stationary_mean_field
-            )
             new_mean_field = mean_field_by_transition_kernel_multi_jax(
                 pi_components.policy,
                 self.env_spec,
                 num_iterations=20,
-                initial_mean_field=current_stationary_mf,
+                initial_mean_field=pi_components.mean_field,
             )
 
             if self.variant == "smooth_policy_iteration":
@@ -204,10 +199,6 @@ class PI_jax:
                 pi_components.mean_field /= pi_components.mean_field.sum()
             else:
                 pi_components.mean_field = new_mean_field
-
-            self.env_spec.environment.stationary_mean_field = np.asarray(
-                pi_components.mean_field
-            )
 
             exploitability = float(
                 exploitability_jax(
@@ -228,6 +219,9 @@ class PI_jax:
                 break
 
         log.info("Final Exploitability: %s", exploitabilities[-1])
+        self.env_spec.environment.stationary_mean_field = np.asarray(
+            pi_components.mean_field
+        )
 
         return (
             np.asarray(pi_components.policy),

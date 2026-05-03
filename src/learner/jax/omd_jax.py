@@ -8,6 +8,7 @@ from envs.mfg_model_class_jit import (
     mean_field_by_transition_kernel_multi_jax,
 )
 import jax
+import jax.numpy as jnp
 import numpy as np
 from tqdm import tqdm
 from utility.policy_average import softmax_policy_jax
@@ -71,10 +72,9 @@ class OMD_jax:
             num_iterations=20,
             initial_mean_field=current_stationary_mf,
         )
-        initial_mean_field_host = np.asarray(initial_mean_field)
-        self.env_spec.environment.stationary_mean_field = initial_mean_field_host.copy()
-        initial_q_values = jax.device_put(
-            np.zeros((self.N_states, self.N_actions), dtype=np.float32), self.jax_device
+        initial_q_values = jnp.zeros(
+            (self.N_states, self.N_actions),
+            dtype=jnp.float32,
         )
         omd_components = OMDComponents(
             q_values=initial_q_values,
@@ -127,17 +127,11 @@ class OMD_jax:
             omd_components.policy = softmax_policy_jax(
                 omd_components.regularized_q_values, self.temperature
             )
-            current_stationary_mf = self._put(
-                self.env_spec.environment.stationary_mean_field
-            )
             omd_components.mean_field = mean_field_by_transition_kernel_multi_jax(
                 omd_components.policy,
                 self.env_spec,
                 num_iterations=20,
-                initial_mean_field=current_stationary_mf,
-            )
-            self.env_spec.environment.stationary_mean_field = np.asarray(
-                omd_components.mean_field
+                initial_mean_field=omd_components.mean_field,
             )
 
             exploitability = float(
@@ -155,6 +149,9 @@ class OMD_jax:
                 )
 
         log.info("Final OMD exploitability: %s", exploitabilities[-1])
+        self.env_spec.environment.stationary_mean_field = np.asarray(
+            omd_components.mean_field
+        )
 
         return (
             np.asarray(omd_components.policy),

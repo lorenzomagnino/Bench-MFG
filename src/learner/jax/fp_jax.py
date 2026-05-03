@@ -94,28 +94,26 @@ class DampedFP_jax:
         return avg_policy
 
     def initialize(self) -> tuple[FPState, list]:
+        initial_policy = self._put(self.initial_policy)
         current_stationary_mf = self._put(
             self.env_spec.environment.stationary_mean_field
         )
         mu = mean_field_by_transition_kernel_multi_jax(
-            self._put(self.initial_policy),
+            initial_policy,
             self.env_spec,
             num_iterations=self.num_transition_steps,
             initial_mean_field=current_stationary_mf,
         )
         mu = mu / mu.sum()
-        self.env_spec.environment.stationary_mean_field = np.asarray(mu)
 
         exploitability = float(
             exploitability_jax(
-                self._put(self.initial_policy),
+                initial_policy,
                 self.env_spec,
                 initial_mean_field=mu,
             )
         )
-        return FPState(policy=self._put(self.initial_policy), mean_field=mu), [
-            exploitability
-        ]
+        return FPState(policy=initial_policy, mean_field=mu), [exploitability]
 
     def eval(self, logger=None):
         state, exploitabilities = self.initialize()
@@ -126,17 +124,12 @@ class DampedFP_jax:
         if logger is not None:
             logger.log_iteration(0, exploitabilities[0], np.asarray(state.mean_field))
         for k in tqdm(range(1, self.num_iterations + 1), desc="Running"):
-            _, policy_best_response = Vpi_opt_jax(
-                self._put(state.mean_field), self.env_spec
-            )
-            current_stationary_mf = self._put(
-                self.env_spec.environment.stationary_mean_field
-            )
+            _, policy_best_response = Vpi_opt_jax(state.mean_field, self.env_spec)
             mean_field_br = mean_field_by_transition_kernel_multi_jax(
                 policy_best_response,
                 self.env_spec,
                 num_iterations=self.num_transition_steps,
-                initial_mean_field=current_stationary_mf,
+                initial_mean_field=state.mean_field,
             )
             mean_field_br = mean_field_br / mean_field_br.sum()
 
@@ -149,10 +142,6 @@ class DampedFP_jax:
                 1.0 - alpha_k
             ) * state.mean_field + alpha_k * mean_field_br
             state.mean_field = state.mean_field / state.mean_field.sum()
-
-            self.env_spec.environment.stationary_mean_field = np.asarray(
-                state.mean_field
-            )
 
             state.policy = policy_best_response
             state_mf_jax = state.mean_field
@@ -192,4 +181,5 @@ class DampedFP_jax:
             )
         )
         log.info("Exploitability (returned policy): %s", final_exploitability)
+        self.env_spec.environment.stationary_mean_field = np.asarray(state.mean_field)
         return np.asarray(final_policy), np.asarray(state.mean_field), exploitabilities

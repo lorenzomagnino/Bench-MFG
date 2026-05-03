@@ -45,6 +45,7 @@ from envs.sis_epidemic.sis_epidemic_jit import (
 from learner.jax.fp_jax import DampedFP_jax
 from learner.jax.omd_jax import OMD_jax
 from learner.jax.pi_jax import PI_jax
+from learner.jax.pso_cuda_jax import PSO_jax_cuda
 from learner.jax.pso_jax import PSO_jax
 from learner.python.fp_py import DampedFP_python
 from learner.python.omd_py import OMD_python
@@ -163,10 +164,27 @@ def _create_pso_solver_jax(
     environment: MFGStationary,
     env_name: str,
     algo_cfg: AlgorithmConfig,
+    random_seed: int,
     jax_device=None,
-) -> PSO_jax:
+) -> PSO_jax | PSO_jax_cuda:
     """Create a JAX PSO solver for any environment."""
     env_spec = get_env_spec(environment, env_name)
+    if jax_device.platform == "gpu":
+        return PSO_jax_cuda(
+            env_spec=env_spec,
+            num_particles=algo_cfg.pso.num_particles,
+            num_iterations=algo_cfg.pso.num_iterations,
+            w=algo_cfg.pso.w,
+            c1=algo_cfg.pso.c1,
+            c2=algo_cfg.pso.c2,
+            temperature=algo_cfg.pso.temperature,
+            policy_type=algo_cfg.pso.policy_type,
+            initialization_type=algo_cfg.pso.initialization_type,
+            init_policy_temp=algo_cfg.pso.init_policy_temp,
+            random_seed=random_seed,
+            jax_device=jax_device,
+        )
+
     return PSO_jax(
         env_spec=env_spec,
         num_particles=algo_cfg.pso.num_particles,
@@ -254,7 +272,14 @@ def create_solver(
     initial_policy: np.ndarray,
     cfg: MFGConfig,
 ) -> (
-    PSO_jax | DampedFP_jax | DampedFP_python | OMD_jax | OMD_python | PI_jax | PI_python
+    PSO_jax
+    | PSO_jax_cuda
+    | DampedFP_jax
+    | DampedFP_python
+    | OMD_jax
+    | OMD_python
+    | PI_jax
+    | PI_python
 ):
     """Create the optimization solver based on configuration.
 
@@ -272,7 +297,11 @@ def create_solver(
 
     if algo_cfg._target_ == "PSO":
         solver = _create_pso_solver_jax(
-            environment, env_name, algo_cfg, jax_device=jax_device
+            environment,
+            env_name,
+            algo_cfg,
+            random_seed=cfg.experiment.random_seed,
+            jax_device=jax_device,
         )
     elif algo_cfg._target_ == "DampedFP":
         if algo_cfg.dampedfp.use_python:
