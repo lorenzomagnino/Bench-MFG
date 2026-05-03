@@ -81,7 +81,7 @@ ENV_JIT_FUNCTIONS = {
 }
 
 
-def _get_env_spec(environment: MFGStationary, env_name: str) -> EnvSpec:
+def get_env_spec(environment: MFGStationary, env_name: str) -> EnvSpec:
     """Create EnvSpec for the given environment."""
     if env_name not in ENV_JIT_FUNCTIONS:
         raise ValueError(f"Unknown environment: {env_name}")
@@ -166,7 +166,7 @@ def _create_pso_solver_jax(
     jax_device=None,
 ) -> PSO_jax:
     """Create a JAX PSO solver for any environment."""
-    env_spec = _get_env_spec(environment, env_name)
+    env_spec = get_env_spec(environment, env_name)
     return PSO_jax(
         env_spec=env_spec,
         num_particles=algo_cfg.pso.num_particles,
@@ -190,7 +190,7 @@ def _create_fp_solver_jax(
     jax_device=None,
 ) -> DampedFP_jax:
     """Create a JAX DampedFP solver for any environment."""
-    env_spec = _get_env_spec(environment, env_name)
+    env_spec = get_env_spec(environment, env_name)
     damped_constant = (
         algo_cfg.dampedfp.damped_constant
         if algo_cfg.dampedfp.damped_constant is not None
@@ -216,7 +216,7 @@ def _create_omd_solver_jax(
     jax_device=None,
 ) -> OMD_jax:
     """Create a JAX OMD solver for any environment."""
-    env_spec = _get_env_spec(environment, env_name)
+    env_spec = get_env_spec(environment, env_name)
     return OMD_jax(
         env_spec=env_spec,
         initial_policy=initial_policy,
@@ -236,7 +236,7 @@ def _create_pi_solver_jax(
     jax_device=None,
 ) -> PI_jax:
     """Create a JAX PI solver for any environment."""
-    env_spec = _get_env_spec(environment, env_name)
+    env_spec = get_env_spec(environment, env_name)
     return PI_jax(
         env_spec=env_spec,
         initial_policy=initial_policy,
