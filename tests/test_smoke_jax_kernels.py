@@ -5,7 +5,7 @@ Covers:
   - Backward pass: jax.grad / jax.value_and_grad produces finite gradients.
   - JIT compatibility: functions tolerate repeated jit-compiled calls.
 
-Architecture under test (all in envs.mfg_model_class_jit):
+Architecture under test (all in benchmfg.envs.mfg_model_class_jit):
   1. mean_field_by_transition_kernel_one_step_jax  – single MF update step
   2. mean_field_by_transition_kernel_multi_jax      – multi-step fori_loop MF update
   3. Vpi_opt_jax                                    – optimal value / policy
@@ -22,20 +22,20 @@ jax = pytest.importorskip("jax", reason="jax required")
 jnp = jax.numpy
 
 LasryLionsChain = pytest.importorskip(
-    "envs.lasry_lions_chain.lasry_lions_chain",
-    reason="project envs package required",
+    "benchmfg.envs.lasry_lions_chain.lasry_lions_chain",
+    reason="project benchmfg.envs package required",
 ).LasryLionsChain
 
 _jit_env = pytest.importorskip(
-    "envs.lasry_lions_chain.lasry_lions_chain_jit",
-    reason="project envs package required",
+    "benchmfg.envs.lasry_lions_chain.lasry_lions_chain_jit",
+    reason="project benchmfg.envs package required",
 )
 transition_fn = _jit_env.transition_lasry_lions_chain
 reward_fn = _jit_env.reward_lasry_lions_chain
 
 _core = pytest.importorskip(
-    "envs.mfg_model_class_jit",
-    reason="project envs package required",
+    "benchmfg.envs.mfg_model_class_jit",
+    reason="project benchmfg.envs package required",
 )
 EnvSpec = _core.EnvSpec
 mean_field_one_step = _core.mean_field_by_transition_kernel_one_step_jax

@@ -3,7 +3,7 @@
 These tests verify that the JAX-accelerated and pure-Python code paths produce
 numerically consistent results for the core MFG primitives.
 
-Requires: numpy, jax, and the project envs package.
+Requires: numpy, jax, and the project benchmfg.envs package.
 Skipped automatically when dependencies are not installed.
 """
 
@@ -15,25 +15,25 @@ jax = pytest.importorskip("jax", reason="jax is required for these tests")
 jnp = jax.numpy
 
 LasryLionsChain = pytest.importorskip(
-    "envs.lasry_lions_chain.lasry_lions_chain",
-    reason="project envs package required",
+    "benchmfg.envs.lasry_lions_chain.lasry_lions_chain",
+    reason="project benchmfg.envs package required",
 ).LasryLionsChain
 
 _jit_mod = pytest.importorskip(
-    "envs.lasry_lions_chain.lasry_lions_chain_jit",
-    reason="project envs package required",
+    "benchmfg.envs.lasry_lions_chain.lasry_lions_chain_jit",
+    reason="project benchmfg.envs package required",
 )
 transition_lasry_lions_chain = _jit_mod.transition_lasry_lions_chain
 reward_lasry_lions_chain = _jit_mod.reward_lasry_lions_chain
 
 MFGStationary = pytest.importorskip(
-    "envs.mfg_model_class",
-    reason="project envs package required",
+    "benchmfg.envs.mfg_model_class",
+    reason="project benchmfg.envs package required",
 ).MFGStationary
 
 _jit_core = pytest.importorskip(
-    "envs.mfg_model_class_jit",
-    reason="project envs package required",
+    "benchmfg.envs.mfg_model_class_jit",
+    reason="project benchmfg.envs package required",
 )
 EnvSpec = _jit_core.EnvSpec
 Q_eval_jax = _jit_core.Q_eval_jax

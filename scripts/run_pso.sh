@@ -13,7 +13,7 @@ ENVIRONMENT="KineticCongestion"
 # ENVIRONMENT="ContractionGame"
 
 echo "Running PSO sweep..."
-python main.py -m \
+benchmfg sweep algorithm=pso environment=kinetic_congestion \
   experiment.name="pso_sweep" \
   experiment.random_seed=42,10,111,1032 \
   algorithm.pso.w=0.3,0.7 \
@@ -22,6 +22,6 @@ python main.py -m \
   algorithm.pso.temperature=0.2,0.7
 
 echo "Generating PSO sweep plots..."
-PYTHONPATH=src python -m utility.plot_sweep "$ENVIRONMENT" PSO
+benchmfg plot sweep "$ENVIRONMENT" PSO
 
 echo "All PSO experiments completed!"

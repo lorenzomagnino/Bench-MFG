@@ -1,0 +1,39 @@
+# @package environment
+# Two-Beach Bar Coordination MFG (Multiple Equilibria Game)
+#
+# Reward: r(x,a,μ) = -c₁|a| - c₂ min{|x-x_L|, |x-x_R|} + α μ(x)
+# where:
+#   - c₁ = movement_penalty (penalizes motion)
+#   - c₂ = beta (attraction to beach bars)
+#   - α = alpha (positive mean-field interaction, favors crowded states)
+#   - x_L, x_R = targets (symmetric target locations)
+#
+# For α >> c₂ >> c₁, the model admits exactly two stationary mean field
+# Nash equilibria, with population fully concentrated at one of the two bars.
+
+name: "MultipleEquilibriaGame"
+
+grid:
+  is_grid: false
+
+num_states: 7
+num_actions: 3
+num_noises: 3
+horizon: 100
+gamma: 0.90
+
+dynamics:
+  is_noisy: true
+  noise_probabilities: [0.025, 0.95, 0.025]  # P(ε = -1), P(ε = 0), P(ε = 1)
+
+reward:
+  strict_contraction:
+    alpha: 5        # α: positive mean-field interaction coefficient (should be >> c₂)
+    beta: 20         # c₂: attraction to beach bars coefficient
+    movement_penalty: 4  # c₁: motion penalty coefficient (should be << c₂)
+    targets: [2, 4]   # x_L = 2, x_R = 4 (symmetric target locations)
+
+initial_distribution:
+  type: "uniform"
+  concentration_state: 6
+  concentration_ratio: 0.5

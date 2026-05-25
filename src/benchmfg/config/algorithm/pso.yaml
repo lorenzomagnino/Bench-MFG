@@ -1,0 +1,16 @@
+# @package algorithm
+# PSO algorithm configuration
+
+_target_: PSO
+
+pso:
+  num_particles: 200
+  num_iterations: 150
+  init_policy_temp: 0.2  # temperature for initial policy conversion to logits (if init_solution provided)
+  policy_type: "boltzmann"
+  initialization_type: "PSO_uniform"
+  # ----- hyperparameters -----
+  temperature: 0.2  # temperature for boltzmann policy conversion during algorithm iterations
+  w: 0.4  # weight for the inertia component
+  c1: 0.5  # weight for the cognitive component
+  c2: 1.5  # weight for the social component

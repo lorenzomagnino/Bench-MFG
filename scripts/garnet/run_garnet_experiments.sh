@@ -10,7 +10,7 @@ set -e
 
 # Activate virtual environment if it exists
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 if [ -d "$PROJECT_ROOT/.venv" ]; then
     source "$PROJECT_ROOT/.venv/bin/activate"
     echo "Activated virtual environment: $PROJECT_ROOT/.venv"
@@ -78,7 +78,7 @@ run_algorithm() {
 
         case $algo_name in
             "pso")
-                python main.py \
+                benchmfg train algorithm=pso environment=mf_garnet \
                     environment.num_states=${NUM_STATES} \
                     environment.num_actions=${NUM_ACTIONS} \
                     environment.reward.mfgarnet.branching_factor=${BRANCHING_FACTOR} \
@@ -93,7 +93,7 @@ run_algorithm() {
                     experiment.name="garnet_${experiment_suffix}"
                 ;;
             "dampedfp")
-                python main.py \
+                benchmfg train algorithm=damped_fixed_point environment=mf_garnet \
                     environment.num_states=${NUM_STATES} \
                     environment.num_actions=${NUM_ACTIONS} \
                     environment.reward.mfgarnet.branching_factor=${BRANCHING_FACTOR} \
@@ -106,7 +106,7 @@ run_algorithm() {
                     experiment.name="garnet_${experiment_suffix}"
                 ;;
             "pi")
-                python main.py \
+                benchmfg train algorithm=pi environment=mf_garnet \
                     environment.num_states=${NUM_STATES} \
                     environment.num_actions=${NUM_ACTIONS} \
                     environment.reward.mfgarnet.branching_factor=${BRANCHING_FACTOR} \
@@ -119,7 +119,7 @@ run_algorithm() {
                     experiment.name="garnet_${experiment_suffix}"
                 ;;
             "omd")
-                python main.py \
+                benchmfg train algorithm=omd environment=mf_garnet \
                     environment.num_states=${NUM_STATES} \
                     environment.num_actions=${NUM_ACTIONS} \
                     environment.reward.mfgarnet.branching_factor=${BRANCHING_FACTOR} \

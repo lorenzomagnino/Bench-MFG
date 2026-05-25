@@ -1,201 +1,155 @@
 <div align="center">
 
-<img src="favicon_v3.svg" width="90" alt="Bench-MFG icon"/>
+<img src="favicon_v3.svg" width="90" alt="BenchMFG icon"/>
 
 # BenchMFG
 
-**A benchmark suite for Mean Field Game algorithms**
+Benchmark suite for Mean Field Game algorithms.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-red.svg)](https://opensource.org/licenses/MIT)
-[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![JAX](https://img.shields.io/badge/JAX-accel.-salmon.svg)](https://github.com/google/jax)
+[![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![JAX](https://img.shields.io/badge/JAX-accelerated-salmon.svg)](https://github.com/google/jax)
 [![Hydra](https://img.shields.io/badge/Hydra-config-89b8cd.svg)](https://hydra.cc)
 [![uv](https://img.shields.io/badge/uv-package%20manager-purple.svg)](https://github.com/astral-sh/uv)
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-red.svg)](https://opensource.org/licenses/MIT)
 [![Unit tests](https://img.shields.io/badge/unit%20tests-passed-brightgreen.svg)](https://docs.pytest.org/)
-[![ruff](https://img.shields.io/badge/ruff-⚡-gold.svg)](https://github.com/astral-sh/ruff)
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen.svg)](https://github.com/pre-commit/pre-commit)
+[![ruff](https://img.shields.io/badge/ruff-%E2%9A%A1-gold.svg)](https://github.com/astral-sh/ruff)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen.svg)](https://pre-commit.com/)
 
 </div>
 
----
+## Contents
 
-## Overview
+- [Install](#install)
+- [Quick Start](#quick-start)
+- [Registered Configs: envs and algos](#registered-configs)
+- [Sweep](#sweep)
+- [Python API](#python-api)
+- [Outputs And Plots](#outputs-and-plots)
+- [Extending BenchMFG: create new envs and algos](docs/EXTENDING.md)
+- [MF-Garnet: scaling laws and robustness](docs/MFG_GARNET.md)
 
-Bench-MFG is a unified benchmarking suite for **Mean Field Game (MFG)** algorithms. It covers a diverse set of environments — including the novel **MF Garnet** — and implements both classical and state-of-the-art solvers. Experiments are configured with [Hydra](https://hydra.cc) and hot paths are accelerated with [JAX](https://github.com/google/jax).
+## Install
 
-### Environments
+```bash
+uv add bench-mfg-suite
+# or
+pip install bench-mfg-suite
+```
 
-| Class | Variants |
-|---|---|
-| No Interaction | Move Forward |
-| Contractive Game | Coordination Game |
-| Lasry-Lions Game | Beach Bar Problem · *(anti)* Two Beach Bars |
-| Potential Game | Four Room Exploration · *(anti)* RockPaperScissor |
-| Dynamics-Coupled Game | SIS Epidemic · Kinetic Congestion |
-| **MF Garnet** *(novel)* | Random Instances |
+For local development:
 
-### Algorithms
+```bash
+uv sync --extra dev
+```
 
-| Category | Algorithms |
-|---|---|
-| BR-based Fixed Point | Fixed Point · Damped Fixed Point · Fictitious Play |
-| Policy-Eval. Based | Policy Iteration · Smoothed PI · Boltzmann PI · Online Mirror Descent |
-| Exploitability Min. | **MF-PSO** *(novel)* |
+CUDA is optional. The default install uses CPU-compatible JAX.
 
-### Features
+```bash
+# Linux/NVIDIA, pip-managed CUDA runtime components:
+uv add "bench-mfg-suite[cuda12]"
+pip install "bench-mfg-suite[cuda12]"
 
-- **Hydra** config — compose and sweep experiments from the CLI
-- **JAX & Python** solvers — run on CPU, GPU, or TPU with minimal changes
-- **Logging & plots** — WandB integration, per-run `.npz` results, and publication-ready figures
+# Linux/NVIDIA, local CUDA installation:
+pip install "bench-mfg-suite[cuda12-local]"
+```
 
----
+If GPU initialization fails, check `nvidia-smi` and the official JAX install matrix:
+https://docs.jax.dev/en/latest/installation.html
 
 ## Quick Start
 
-```bash
-# Create and activate environment
-uv venv --python 3.11
-source .venv/bin/activate
+List registered configs:
 
-# Install dependencies
-uv pip install -e .
+```bash
+benchmfg env list
+benchmfg algo list
 ```
 
-### Run an experiment
-
-Select your algorithm and environment in `conf/defaults.yaml`, then:
+Run one experiment:
 
 ```bash
-python main.py
+benchmfg train algorithm=pso environment=kinetic_congestion device=cpu
 ```
 
-General way to run an experiment (after selecting algo and env in `conf/defaults.yaml`):
+## Registered Configs
+
+Environments:
+`contraction_game`, `four_rooms_obstacles`, `kinetic_congestion`, `lasry_lions_chain`, `mf_garnet`, `multiple_equilibria`, `no_interaction_game`, `potential_game2d`, `rock_paper_scissors`, `sis_epidemic`.
+
+Algorithms:
+`damped_fixed_point`, `omd`, `pi`, `pso`.
+
+Use `benchmfg env list` and `benchmfg algo list` for the installed package’s authoritative list.
+
+## Sweep
+
+Run a sweep:
+
 ```bash
-python main.py -m \
-  experiment.name="omd_sweep" \
+benchmfg sweep \
+  algorithm=omd \
+  environment=lasry_lions_chain \
+  experiment.name=omd_sweep \
   experiment.random_seed=42,10,111,1032 \
   algorithm.omd.learning_rate=0.5,0.05,0.005 \
   algorithm.omd.temperature=0.2,0.5,0.8
 ```
 
-For detailed instructions on batch runs see [EXPERIMENTS.md](EXPERIMENTS.md).
+## Python API
 
----
+```python
+import benchmfg
 
-## Configuration
-
-All configuration lives under `conf/` and is managed by Hydra:
-
-| File / Folder | Purpose |
-|---|---|
-| `conf/defaults.yaml` | Top-level defaults |
-| `conf/algorithm/` | Per-algorithm settings (pso, omd, pi, …) |
-| `conf/environment/` | Environment configurations |
-| `conf/experiment/` | Experiment overrides |
-| `conf/logging/` | WandB logging settings |
-| `conf/visualization/` | Plot settings |
-
----
-
-## Repository Structure
-
-```
-Bench-MFG/
-├── conf/                    # Hydra configuration files
-│   ├── defaults.yaml
-│   ├── algorithm/
-│   ├── environment/
-│   ├── experiment/
-│   ├── logging/
-│   └── visualization/
-├── envs/                    # MFG environments
-│   ├── mf_garnet/           # MF Garnet (novel)
-│   ├── four_rooms_obstacles/
-│   ├── lasry_lions_chain/
-│   ├── contraction_game/
-│   ├── kinetic_congestion/
-│   ├── sis_epidemic/
-│   └── ...
-├── learner/                 # Solver implementations
-│   ├── jax/                 # JAX-accelerated solvers
-│   └── python/              # Pure-Python solvers
-├── utility/                 # Shared utilities
-│   ├── create_environment.py
-│   ├── create_solver.py
-│   ├── run_training.py
-│   ├── save_results.py
-│   ├── wandb_logger.py
-│   └── MFGPlots.py
-├── outputs/                 # Experiment results
-├── scripts/                 # Helper shell scripts
-├── main.py                  # Entry point
-└── pyproject.toml           # Project dependencies
+cfg = benchmfg.load_config(["algorithm=omd", "environment=lasry_lions_chain"])
+environment, initial_policy = benchmfg.make_environment(cfg)
+solver = benchmfg.make_solver(
+    cfg,
+    environment=environment,
+    initial_policy=initial_policy,
+)
 ```
 
----
+## Outputs And Plots
 
-## Outputs
+Runs write artifacts under:
 
-Results are written to `outputs/<Env>/<Algorithm>/seed_<seed>/<Experiment>/<run_id>/`:
+```text
+outputs/<Env>/<Algorithm>/seed_<seed>/<Experiment>/<run_id>/
+```
 
-| File | Contents |
-|---|---|
-| `exploitabilities.npz` | Exploitability value per iteration |
-| `final_mean_field.npz` | Stationary mean field distribution |
-| `final_policy.npz` | Optimal policy (states × actions) |
-| `metrics.npz` | Wall-clock runtime |
-| `config.yaml` | Full Hydra config for reproducibility |
+Important files: `exploitabilities.npz`, `final_mean_field.npz`, `final_policy.npz`,
+`metrics.npz`, `config.yaml`.
 
----
-
-## Visualising Results
-
-After a run completes, the exact plot command is printed to the terminal. There are three plotting scripts depending on what you want to visualise.
-
-### 1 — Single run
+Plot commands:
 
 ```bash
-PYTHONPATH=src python -m utility.plot_single_run <run_dir>
-# e.g.
-PYTHONPATH=src python -m utility.plot_single_run \
-  outputs/LasryLionsChain/OMD/seed_42/bench_mfg_lr0p0050_temp0p20/20260502_175255_575
-
-# Grid environments need extra flags:
-PYTHONPATH=src python -m utility.plot_single_run <run_dir> \
-  --is-grid --grid-rows 11 --grid-cols 11
+benchmfg plot single-run <run_dir>
+benchmfg plot sweep <environment> <algorithm>
+benchmfg plot compare <environment>
 ```
 
-Plots: exploitability curve, mean field distribution, policy heatmap. Also prints wall-clock runtime.
+Plot discovery defaults:
 
-### 2 — Hyperparameter sweep (one algorithm)
+- `single-run <run_dir>` plots exactly that timestamped run.
+- `sweep <environment> <algorithm>` scans `outputs/` by default. For each seed and
+  hyperparameter version, it selects the latest timestamped run containing
+  `exploitabilities.npz`.
+- `compare <environment>` reads the `results/<environment>/<algorithm>/best_model.yaml`
+  files written by `plot sweep`; rerun `plot sweep` first if new runs were added.
+- Use `--outputs-dir <path>` on sweep/compare commands when artifacts are not under
+  `outputs/`.
 
-Run this after completing a sweep for one algorithm. It plots all hyperparameter versions on
-the same axes and writes `results/<env>/<algo>_best_models.yaml` (used by step 3).
+## Repository Layout
 
-```bash
-PYTHONPATH=src python -m utility.plot_sweep <environment> <algorithm>
-# e.g.
-PYTHONPATH=src python -m utility.plot_sweep LasryLionsChain OMD --log-scale
-PYTHONPATH=src python -m utility.plot_sweep LasryLionsChain PSO --log-scale
+```text
+src/benchmfg/
+├── config/      # packaged Hydra configs
+├── envs/        # MFG environments
+├── learner/     # solvers
+├── utility/     # training, saving, plotting helpers
+├── cli.py       # benchmfg command
+└── train.py     # Hydra train entrypoint
 ```
 
-Known algorithm directory names: `PSO`, `OMD`, `DampedFP_damped`, `DampedFP_fictitious_play`,
-`DampedFP_pure`, `PI_smooth_policy_iteration`, `PI_boltzmann_policy_iteration`, `PI_policy_iteration`.
-
-### 3 — Cross-algorithm comparison
-
-Run this after completing step 2 for every algorithm you want to compare. It reads the
-`*_best_models.yaml` files to select the best hyperparameter configuration per algorithm.
-
-```bash
-PYTHONPATH=src python -m utility.plot_comparison <environment>
-# e.g.
-PYTHONPATH=src python -m utility.plot_comparison LasryLionsChain
-```
-or all the envs running
-```bash
-bash scripts/generate_comparisons.sh
-```
-
-Produces: exploitability comparison plot (mean ± std per algorithm) and a runtime box chart.
+See [EXPERIMENTS.md](EXPERIMENTS.md) for batch-run scripts.

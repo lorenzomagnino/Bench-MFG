@@ -41,6 +41,8 @@ htmlcov/
 outputs/
 multirun/
 .hydra_logs/
+profiling_output/
+profiling_ouput/
 
 # uv lock (keep uv.lock but not cache)
 .uv/

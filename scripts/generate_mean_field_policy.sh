@@ -31,7 +31,7 @@ for ENV in "${ENVIRONMENTS[@]}"; do
     echo "=== $ENV ==="
     for ALGO in "${ALGORITHMS[@]}"; do
         echo "  $ALGO"
-        PYTHONPATH=src python -m utility.plot_single_run --env "$ENV" --algo "$ALGO" \
+        benchmfg plot single-run --env "$ENV" --algo "$ALGO" \
             2>&1 | sed 's/^/    /'
     done
     echo ""
