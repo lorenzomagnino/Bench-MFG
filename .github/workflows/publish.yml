@@ -9,6 +9,9 @@ on:
 jobs:
   test-build-publish:
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/bench-mfg-suite/
     permissions:
       contents: read
       id-token: write
