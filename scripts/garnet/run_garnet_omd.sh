@@ -5,7 +5,7 @@ set -e
 
 # Activate virtual environment if it exists
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 if [ -d "$PROJECT_ROOT/.venv" ]; then
     source "$PROJECT_ROOT/.venv/bin/activate"
     echo "Activated virtual environment: $PROJECT_ROOT/.venv"
@@ -49,7 +49,7 @@ for i in $(seq 0 $((NUM_INSTANCES - 1))); do
 
     echo "Run $((i+1))/${NUM_INSTANCES}: garnet_seed=${GARNET_SEED}, algo_seed=${ALGO_SEED}"
 
-    python main.py \
+    benchmfg train algorithm=omd environment=mf_garnet \
         environment.num_states=${NUM_STATES} \
         environment.num_actions=${NUM_ACTIONS} \
         environment.reward.mfgarnet.branching_factor=${BRANCHING_FACTOR} \

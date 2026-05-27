@@ -5,13 +5,13 @@ import pytest
 np = pytest.importorskip("numpy", reason="numpy is required for these tests")
 
 _py_core = pytest.importorskip(
-    "envs.mfg_model_class",
-    reason="project envs package required",
+    "benchmfg.envs.mfg_model_class",
+    reason="project benchmfg.envs package required",
 )
 
 LasryLionsChain = pytest.importorskip(
-    "envs.lasry_lions_chain.lasry_lions_chain",
-    reason="project envs package required",
+    "benchmfg.envs.lasry_lions_chain.lasry_lions_chain",
+    reason="project benchmfg.envs package required",
 ).LasryLionsChain
 
 

@@ -17,11 +17,11 @@ ENVIRONMENTS=(
 
 for ENV in "${ENVIRONMENTS[@]}"; do
     echo "=== Generating comparison plots for: $ENV ==="
-    PYTHONPATH=src python -m utility.plot_comparison "$ENV"
+    benchmfg plot compare "$ENV"
     echo ""
 done
 
 echo "=== Collecting best-model NPZ artifacts into results/ ==="
-PYTHONPATH=src python -m utility.collect_best_artifacts
+python -m benchmfg.utility.collect_best_artifacts
 
 echo "All comparison plots generated."

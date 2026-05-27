@@ -1,0 +1,15 @@
+# @package algorithm
+# On-line Mirror Descent algorithm configuration
+
+_target_: OMD
+
+omd:
+  use_python: false
+  num_iterations: 150
+  verbose: true
+  early_stopping_enabled: false
+  initialization_type: "PSO_uniform"
+  init_policy_temp: 0.2  # temperature for initial policy
+  #----- hyperparameters -----
+  learning_rate: 0.005
+  temperature: 0.2  # temperature for OMD softmax
