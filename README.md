@@ -29,6 +29,8 @@ Benchmark suite for Mean Field Game algorithms.
 - [Extending BenchMFG: create new envs and algos](docs/EXTENDING.md)
 - [MF-Garnet: scaling laws and robustness](docs/MFG_GARNET.md)
 
+ ⚠️🔧 We are continuously improving BenchMFG. For any issues or problems feel free to contact me at lm2183@cam.ac.uk or open an issue. We are quite responsive!
+
 ## Install
 
 ```bash
