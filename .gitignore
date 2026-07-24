@@ -30,6 +30,7 @@ htmlcov/
 
 # Local assistant configuration
 .claude/
+.env
 
 # Local/anonymous publishing excludes
 .github/
