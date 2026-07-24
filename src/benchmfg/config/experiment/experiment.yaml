@@ -4,6 +4,7 @@
 name: "bench_mfg"
 mode: 1
 is_saved: True
+make_plots: True
 description: "Default Bench MFG experiment"
 run:
   dir: outputs/${environment.name}/${algorithm._target_}/seed_${experiment.random_seed}/${experiment.name}

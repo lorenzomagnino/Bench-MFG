@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import partial
+import re
 
 import jax
 import jax.numpy as jnp
@@ -11,17 +12,35 @@ jax_jit = partial(jax.jit, static_argnames="spec")
 
 
 def get_jax_device(device_str: str = "cpu"):
-    """Return the first JAX device matching the requested backend.
+    """Return the requested JAX device, with explicit GPU selection.
 
     Args:
-        device_str: ``"cuda"`` maps to the JAX GPU backend; anything else uses CPU.
-                    Falls back to CPU when the requested backend is unavailable.
+        device_str: ``"cpu"``, ``"cuda"``, or ``"cuda:N"``.
+
+    Raises:
+        RuntimeError: If a requested GPU backend or index is unavailable.
     """
-    backend = "gpu" if device_str == "cuda" else "cpu"
-    try:
-        return jax.devices(backend)[0]
-    except RuntimeError:
+    device = str(device_str).lower()
+    if device == "cpu":
         return jax.devices("cpu")[0]
+
+    match = re.fullmatch(r"cuda(?::(\d+))?", device)
+    if match is None:
+        raise ValueError(f"Unsupported device {device_str!r}; use cpu, cuda, or cuda:N")
+
+    try:
+        devices = jax.devices("gpu")
+    except RuntimeError as exc:
+        raise RuntimeError(
+            f"GPU requested but no JAX GPU backend is available: {exc}"
+        ) from exc
+
+    index = int(match.group(1) or 0)
+    if index >= len(devices):
+        raise RuntimeError(
+            f"GPU index {index} is unavailable; found {len(devices)} visible GPU(s)"
+        )
+    return devices[index]
 
 
 @dataclass(frozen=True)
