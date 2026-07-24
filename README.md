@@ -47,7 +47,7 @@ For local development:
 uv sync --extra dev
 ```
 
-CUDA is optional. The default install uses CPU-compatible JAX.
+CUDA is optional (but if we are running on gpu make sure you download that!!!!). The default install uses CPU-compatible JAX.
 
 ```bash
 # Linux/NVIDIA, pip-managed CUDA runtime components:
@@ -61,7 +61,15 @@ pip install "bench-mfg-suite[cuda12-local]"
 If GPU initialization fails, check `nvidia-smi` and the official JAX install matrix:
 https://docs.jax.dev/en/latest/installation.html
 
-## Quick Start
+## Quick Start ⚡️
+
+👑 Quick understanding of the repository and the package run the following three commands
+
+```bash
+benchmfg hello
+benchmfg garnet
+benchmfg mfpso
+```
 
 List registered configs:
 

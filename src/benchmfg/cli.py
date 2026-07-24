@@ -112,6 +112,9 @@ def main(argv: list[str] | None = None) -> None:
         _parser().print_help()
         print()
         print("Commands:")
+        print("  hello")
+        print("  garnet")
+        print("  mfpso")
         print("  train [HYDRA_OVERRIDES...]")
         print("  sweep [HYDRA_OVERRIDES...]")
         print("  plot {single-run,sweep,compare} ...")
@@ -121,7 +124,11 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     command, rest = args[0], args[1:]
-    if command == "train":
+    if command in {"hello", "garnet", "mfpso"}:
+        from benchmfg import banners
+
+        getattr(banners, command)()
+    elif command == "train":
         _run_hydra(rest)
     elif command == "sweep":
         _run_hydra(["-m", *rest])
