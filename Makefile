@@ -1,9 +1,12 @@
-.PHONY: install run profile test lint format clean help
+.PHONY: install run profile test lint format clean help hello garnet mfpso
 
 PROFILE_OUT ?= profiling_output/profile_$(shell date +%Y%m%d_%H%M%S).html
 
 help:
 	@echo "Available commands:"
+	@echo "  make hello     - Print a BenchMFG quick-start guide"
+	@echo "  make garnet    - Print MF-Garnet usage notes"
+	@echo "  make mfpso     - Print Mean Field PSO usage notes"
 	@echo "  make install   - Install dependencies with uv"
 	@echo "  make run       - Run main.py"
 	@echo "  make profile   - Profile main.py and open flamegraph HTML"
@@ -37,3 +40,12 @@ format:
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -r {} + 2>/dev/null || true
+
+hello:
+	@uv run benchmfg hello
+
+garnet:
+	@uv run benchmfg garnet
+
+mfpso:
+	@uv run benchmfg mfpso
