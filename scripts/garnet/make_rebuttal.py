@@ -13,7 +13,12 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from aggregate_scaling import aggregate, scan_runs  # noqa: E402
+from aggregate_scaling import (  # noqa: E402
+    FLOOR_LABEL,
+    aggregate,
+    format_exploitability,
+    scan_runs,
+)
 from compare_to_paper import COLUMN_CONFIG, PAPER, PAPER_NAME  # noqa: E402
 
 ORDER = list(PAPER_NAME)
@@ -39,50 +44,63 @@ def main() -> int:
     parser.add_argument("--out", type=Path, default=Path("garnet_rebuttal.md"))
     args = parser.parse_args()
 
-    scaling = {
-        (row["states"], row["algorithm"]): row
-        for row in aggregate(scan_runs(args.scaling_dir))
-    }
-    states = sorted({s for s, _ in scaling})
-    seeds = sorted({row["runs"] for row in scaling.values()})
+    all_rows = aggregate(scan_runs(args.scaling_dir))
+    modalities = sorted({row["modality"] for row in all_rows})
 
     lines = ["## New experiment: scaling with the size of the state space", ""]
     lines += [
-        "We add a scaling study on MF-Garnet in the **A/M** setting (additive dynamics /",
-        r"multiplicative reward), varying $\lvert S\rvert$ at fixed $\lvert A\rvert=6$ and",
-        "branching factor $6$, potential game, $64$ noise atoms, horizon $100$,",
-        r"$\gamma=0.90$, $150$ iterations, $200$ PSO particles. Mean $\pm$ std over "
-        f"${'/'.join(map(str, seeds))}$",
-        "seeds (each seed draws a fresh Garnet instance). One NVIDIA L40S per run.",
-        "",
-        "### Final exploitability",
+        "We add a scaling study on MF-Garnet, varying $\\lvert S\\rvert$ at fixed",
+        r"$\lvert A\rvert=6$ and branching factor $6$, potential game, $64$ noise atoms,",
+        r"horizon $100$, $\gamma=0.90$, $150$ iterations, $200$ PSO particles. Mean",
+        r"$\pm$ std over seeds, each seed drawing a fresh Garnet instance. One NVIDIA",
+        "L40S per run. A = additive coupling, M = multiplicative, given as",
+        "dynamics/reward.",
         "",
     ]
-    lines += _table(
-        scaling,
-        states,
-        lambda r: f"{r['final_exploitability_mean']:.3g} ± {r['final_exploitability_std']:.2g}",
-    )
 
-    negatives = [
-        (s, PAPER_NAME[a])
-        for (s, a), r in scaling.items()
-        if r["final_exploitability_mean"] < 0
-    ]
-    if negatives:
-        state_count, name = negatives[0]
+    for label in modalities:
+        subset = [row for row in all_rows if row["modality"] == label]
+        scaling = {(row["states"], row["algorithm"]): row for row in subset}
+        states = sorted({row["states"] for row in subset})
+        seeds = sorted({row["runs"] for row in subset})
+
+        lines += [
+            f"### Modality {label} ({'/'.join(map(str, seeds))} seeds per cell)",
+            "",
+        ]
+        lines += ["**Final exploitability**", ""]
+
+        def cell(row: dict) -> str:
+            text = format_exploitability(
+                row["final_exploitability_mean"], row["final_exploitability_std"]
+            )
+            if row["seeds_at_floor"]:
+                text += f" [{row['seeds_at_floor']}/{row['runs']}]"
+            return text
+
+        lines += _table(scaling, states, cell)
         lines += [
             "",
-            rf"<sub>{name} at $\lvert S\rvert={state_count}$ returns a small negative value:",
-            "exploitability is non-negative by definition, so that cell is float32",
-            "cancellation at zero, i.e. convergence to numerical precision.</sub>",
+            rf"<sub>`{FLOOR_LABEL}` marks cells solved to the float32 resolution of",
+            "exploitability (a difference of order-1 value functions, so ~6e-08 per ULP);",
+            "the digits below that threshold carry no information. `[k/n]` counts the",
+            "seeds that reached the floor -- the per-cell distribution is bimodal",
+            "(solved / not solved), so the mean alone understates both outcomes.</sub>",
         ]
 
-    lines += ["", "### Wall-clock time (seconds)", ""]
-    lines += _table(scaling, states, lambda r: f"{r['runtime_mean_s']:.0f}")
+        lines += ["", "**Wall-clock time (seconds)**", ""]
+        lines += _table(scaling, states, lambda r: f"{r['runtime_mean_s']:.0f}")
+        lines += [""]
 
     paper_rows = {
-        (row["states"], row["actions"], row["branching_factor"], row["algorithm"]): row
+        (
+            row["states"],
+            row["actions"],
+            row["branching_factor"],
+            row["dynamics_structure"],
+            row["reward_structure"],
+            row["algorithm"],
+        ): row
         for row in aggregate(scan_runs(args.paper_dir))
     }
     if paper_rows:
@@ -102,9 +120,9 @@ def main() -> int:
         worst = 0.0
         for algorithm in ORDER:
             cells = []
-            for column, (st, ac, br) in COLUMN_CONFIG.items():
+            for column, (st, ac, br, dyn, rew) in COLUMN_CONFIG.items():
                 paper_mean, paper_std = PAPER[column][algorithm]
-                row = paper_rows.get((st, ac, br, algorithm))
+                row = paper_rows.get((st, ac, br, dyn, rew, algorithm))
                 if row is None:
                     cells += [f"{paper_mean:.3g}", "—", "—"]
                     continue
@@ -118,9 +136,9 @@ def main() -> int:
             lines.append(f"| {PAPER_NAME[algorithm]} | " + " | ".join(cells) + " |")
         within = sum(
             1
-            for column, (st, ac, br) in COLUMN_CONFIG.items()
+            for column, (st, ac, br, dyn, rew) in COLUMN_CONFIG.items()
             for algorithm in ORDER
-            if (row := paper_rows.get((st, ac, br, algorithm)))
+            if (row := paper_rows.get((st, ac, br, dyn, rew, algorithm)))
             and abs(row["final_exploitability_mean"] - PAPER[column][algorithm][0])
             / PAPER[column][algorithm][1]
             <= 1

@@ -40,9 +40,24 @@ PAPER = {
         "OMD": (1.4371, 0.3936),
         "PSO": (3.8633, 1.9042),
     },
+    "25x10x10 (M/A)": {
+        "DampedFP:pure": (2.13e-04, 6.35e-04),
+        "DampedFP:damped": (3.43e-05, 9.83e-05),
+        "DampedFP:fictitious_play": (3.32e-04, 7.40e-04),
+        "PI:boltzmann_policy_iteration": (0.9322, 0.3213),
+        "PI:smooth_policy_iteration": (2.91e-04, 8.68e-04),
+        "PI:policy_iteration": (0.0027, 0.0080),
+        "OMD": (1.4728, 0.4549),
+        "PSO": (4.0158, 2.1616),
+    },
 }
-# Which (states, actions, branching) each paper column corresponds to.
-COLUMN_CONFIG = {"5x5x5 (A/M)": (5, 5, 5), "25x10x10 (A/A)": (25, 10, 10)}
+# (states, actions, branching, dynamics_structure, reward_structure) per column.
+# The structures are part of the key: the two 25x10x10 columns differ only there.
+COLUMN_CONFIG = {
+    "5x5x5 (A/M)": (5, 5, 5, "additive", "multiplicative"),
+    "25x10x10 (A/A)": (25, 10, 10, "additive", "additive"),
+    "25x10x10 (M/A)": (25, 10, 10, "multiplicative", "additive"),
+}
 # Paper's name for each of our algorithm keys.
 PAPER_NAME = {
     "DampedFP:pure": "Fixed Point (FP)",
@@ -63,7 +78,14 @@ def main() -> int:
     args = parser.parse_args()
 
     rows = {
-        (row["states"], row["actions"], row["branching_factor"], row["algorithm"]): row
+        (
+            row["states"],
+            row["actions"],
+            row["branching_factor"],
+            row["dynamics_structure"],
+            row["reward_structure"],
+            row["algorithm"],
+        ): row
         for row in aggregate(scan_runs(args.outputs_dir))
     }
 
@@ -73,12 +95,12 @@ def main() -> int:
     lines.append("")
     worst = 0.0
     for column, entries in PAPER.items():
-        states, actions, branching = COLUMN_CONFIG[column]
+        states, actions, branching, dynamics, reward = COLUMN_CONFIG[column]
         lines += [f"## {column}", ""]
         lines.append("| Algorithm | Paper | Ours | z | |")
         lines.append("|---|---|---|---|---|")
         for algorithm, (paper_mean, paper_std) in entries.items():
-            row = rows.get((states, actions, branching, algorithm))
+            row = rows.get((states, actions, branching, dynamics, reward, algorithm))
             if row is None:
                 lines.append(
                     f"| {PAPER_NAME[algorithm]} | {paper_mean:.4g} | missing | - | |"

@@ -126,11 +126,17 @@ def build_jobs(args: argparse.Namespace) -> list[Job]:
 
 
 def cell_key(job: Job, args: argparse.Namespace) -> tuple:
-    """Key matching aggregate_scaling.completed_cells for resume checks."""
+    """Key matching aggregate_scaling.completed_cells for resume checks.
+
+    Includes the coupling structures, so a finished A/M cell does not make the
+    launcher skip the corresponding M/A job.
+    """
     return (
         job.states,
         args.actions,
         args.branching_factor,
+        args.dynamics_structure,
+        args.reward_structure,
         TABLE_NAMES.get(job.algorithm, job.algorithm),
         job.garnet_seed,
         job.algorithm_seed,

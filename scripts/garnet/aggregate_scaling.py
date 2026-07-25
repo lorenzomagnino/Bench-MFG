@@ -15,6 +15,21 @@ from pathlib import Path
 import numpy as np
 import yaml
 
+# Exploitability is a difference of two value functions of order 1, computed in
+# float32, so its absolute resolution is a few ULPs of 1.0 (2^-24 = 6.0e-08).
+# Every observed sub-1e-6 result is an exact small multiple of that ULP, i.e. it
+# means "zero", not a small number. Report such cells as a floor instead of
+# printing digits that carry no information.
+EXPLOITABILITY_FLOOR = 1e-6
+FLOOR_LABEL = "<1e-6"
+
+
+def format_exploitability(mean: float, std: float = 0.0) -> str:
+    """Render an exploitability, collapsing anything at the float32 floor."""
+    if abs(mean) < EXPLOITABILITY_FLOOR:
+        return FLOOR_LABEL
+    return f"{mean:.3g} ± {std:.2g}"
+
 
 def _algorithm_name(config: dict) -> str:
     algorithm = config["algorithm"]
@@ -55,6 +70,8 @@ def scan_runs(outputs_dir: Path) -> list[dict]:
                 "states": env["num_states"],
                 "actions": env["num_actions"],
                 "branching_factor": garnet["branching_factor"],
+                "dynamics_structure": garnet["dynamics_structure"],
+                "reward_structure": garnet["reward_structure"],
                 "garnet_seed": garnet["seed"],
                 "random_seed": config["experiment"]["random_seed"],
                 "algorithm": _algorithm_name(config),
@@ -66,13 +83,27 @@ def scan_runs(outputs_dir: Path) -> list[dict]:
     return records
 
 
+def modality(record: dict) -> str:
+    """Short label for the coupling structures, e.g. "A/M"."""
+    return (
+        f"{record['dynamics_structure'][0].upper()}/"
+        f"{record['reward_structure'][0].upper()}"
+    )
+
+
 def completed_cells(outputs_dir: Path) -> set[tuple]:
-    """Return keys of finished cells, for resuming an interrupted sweep."""
+    """Return keys of finished cells, for resuming an interrupted sweep.
+
+    The coupling structures are part of the key: an A/M run is not a finished
+    M/A cell, even at the same size, algorithm and seed.
+    """
     return {
         (
             record["states"],
             record["actions"],
             record["branching_factor"],
+            record["dynamics_structure"],
+            record["reward_structure"],
             record["algorithm"],
             record["garnet_seed"],
             record["random_seed"],
@@ -82,27 +113,41 @@ def completed_cells(outputs_dir: Path) -> set[tuple]:
 
 
 def aggregate(records: list[dict]) -> list[dict]:
-    """Average per-run records over seeds."""
+    """Average per-run records over seeds, keeping modalities separate."""
     groups = defaultdict(list)
     for record in records:
         key = (
             record["states"],
             record["actions"],
             record["branching_factor"],
+            record["dynamics_structure"],
+            record["reward_structure"],
             record["algorithm"],
         )
         groups[key].append((record["runtime_s"], record["final_exploitability"]))
 
     rows = []
-    for (states, actions, branching, algorithm), values in sorted(groups.items()):
+    for key, values in sorted(groups.items()):
+        states, actions, branching, dynamics, reward, algorithm = key
         runtimes, final_values = np.asarray(values).T
         rows.append(
             {
                 "states": states,
                 "actions": actions,
                 "branching_factor": branching,
+                "dynamics_structure": dynamics,
+                "reward_structure": reward,
+                "modality": modality(
+                    {"dynamics_structure": dynamics, "reward_structure": reward}
+                ),
                 "algorithm": algorithm,
                 "runs": len(values),
+                # How many seeds converged to the float32 floor. The distribution is
+                # bimodal (solved / not solved), so the mean alone is misleading.
+                "seeds_at_floor": int(
+                    (np.abs(final_values) < EXPLOITABILITY_FLOOR).sum()
+                ),
+                "final_exploitability_median": float(np.median(final_values)),
                 "runtime_mean_s": runtimes.mean(),
                 "runtime_std_s": runtimes.std(ddof=1) if len(values) > 1 else 0.0,
                 "final_exploitability_mean": final_values.mean(),
@@ -136,9 +181,18 @@ def _pivot_lines(rows: list[dict], value: str, fmt: str, title: str) -> list[str
             if row is None:
                 parts.append("-")
                 continue
-            mean = row[f"{value}_mean" if value != "runtime" else "runtime_mean_s"]
-            std = row[f"{value}_std" if value != "runtime" else "runtime_std_s"]
-            parts.append(f"{mean:{fmt}} ± {std:{fmt}} ({row['runs']})")
+            if value == "runtime":
+                parts.append(
+                    f"{row['runtime_mean_s']:{fmt}} ± {row['runtime_std_s']:{fmt}} "
+                    f"({row['runs']})"
+                )
+                continue
+            cell = format_exploitability(
+                row["final_exploitability_mean"], row["final_exploitability_std"]
+            )
+            if row["seeds_at_floor"]:
+                cell += f" [{row['seeds_at_floor']}/{row['runs']} at floor]"
+            parts.append(f"{cell} ({row['runs']})")
         lines.append("| " + " | ".join(parts) + " |")
     lines.append("")
     return lines
@@ -154,6 +208,9 @@ def _combined_pivot_lines(rows: list[dict]) -> list[str]:
         "### Exploitability and wall-clock time",
         "",
         "Each cell: final exploitability (mean ± std) / wall-clock seconds (mean).",
+        f"`{FLOOR_LABEL}` marks cells at the float32 resolution of exploitability, i.e."
+        " solved exactly.",
+        "`[k/n at floor]` counts how many seeds reached it.",
         "",
     ]
     header = ["Algorithm"] + [f"S={s}" for s in states]
@@ -166,54 +223,68 @@ def _combined_pivot_lines(rows: list[dict]) -> list[str]:
             if row is None:
                 parts.append("-")
                 continue
-            parts.append(
-                f"{row['final_exploitability_mean']:.3g} ± "
-                f"{row['final_exploitability_std']:.3g} / "
-                f"{row['runtime_mean_s']:.0f}s"
+            cell = format_exploitability(
+                row["final_exploitability_mean"], row["final_exploitability_std"]
             )
+            if row["seeds_at_floor"]:
+                cell += f" [{row['seeds_at_floor']}/{row['runs']}]"
+            parts.append(f"{cell} / {row['runtime_mean_s']:.0f}s")
         lines.append("| " + " | ".join(parts) + " |")
     lines.append("")
     return lines
 
 
 def write_markdown(rows: list[dict], path: Path) -> None:
-    """Write the scaling pivots followed by the full per-cell table."""
+    """Write per-modality scaling pivots followed by the full per-cell table."""
     lines = ["# MF-Garnet Scaling", ""]
-    if rows:
-        actions = sorted({row["actions"] for row in rows})
-        branching = sorted({row["branching_factor"] for row in rows})
-        seeds = sorted({row["runs"] for row in rows})
+    # One section per modality: the pivots key on (algorithm, states), so mixing
+    # A/M and M/A rows in one table would drop cells.
+    for label in sorted({row["modality"] for row in rows}):
+        subset = [row for row in rows if row["modality"] == label]
+        actions = sorted({row["actions"] for row in subset})
+        branching = sorted({row["branching_factor"] for row in subset})
+        seeds = sorted({row["runs"] for row in subset})
+        lines.append(f"## Modality {label}")
+        lines.append("")
         lines.append(
             f"Actions: {', '.join(map(str, actions))} | "
             f"Branching factor: {', '.join(map(str, branching))} | "
             f"Seeds per cell: {', '.join(map(str, seeds))}"
         )
         lines.append("")
-        lines += _combined_pivot_lines(rows)
+        lines += _combined_pivot_lines(subset)
         lines += _pivot_lines(
-            rows, "final_exploitability", ".4g", "Final exploitability (mean ± std, n)"
+            subset,
+            "final_exploitability",
+            ".4g",
+            "Final exploitability (mean ± std, n)",
         )
         lines += _pivot_lines(
-            rows, "runtime", ".1f", "Runtime in seconds (mean ± std, n)"
+            subset, "runtime", ".1f", "Runtime in seconds (mean ± std, n)"
         )
 
     headers = [
+        "Modality",
         "States",
         "Actions",
         "Branching",
         "Algorithm",
         "Runs",
+        "At floor",
         "Runtime (s)",
         "Final exploitability",
+        "Median",
     ]
-    lines += ["### All cells", ""]
+    lines += ["## All cells", ""]
     lines.append("| " + " | ".join(headers) + " |")
     lines.append("|" + "---|" * len(headers))
     for row in rows:
         lines.append(
-            f"| {row['states']} | {row['actions']} | {row['branching_factor']} | {row['algorithm']} | "
-            f"{row['runs']} | {row['runtime_mean_s']:.3f} +/- {row['runtime_std_s']:.3f} | "
-            f"{row['final_exploitability_mean']:.6g} +/- {row['final_exploitability_std']:.6g} |"
+            f"| {row['modality']} | {row['states']} | {row['actions']} | {row['branching_factor']} | {row['algorithm']} | "
+            f"{row['runs']} | {row['seeds_at_floor']}/{row['runs']} | "
+            f"{row['runtime_mean_s']:.3f} +/- {row['runtime_std_s']:.3f} | "
+            f"{row['final_exploitability_mean']:.6g} +/- {row['final_exploitability_std']:.6g} | "
+            f"{row['final_exploitability_median']:.6g} |"
         )
     path.write_text("\n".join(lines) + "\n")
 

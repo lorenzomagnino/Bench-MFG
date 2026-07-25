@@ -32,9 +32,13 @@ def _write_run(
     variant: str | None = None,
     runtime_s: float = 1.0,
     final: float = 0.5,
+    dynamics: str = "additive",
+    reward: str = "multiplicative",
 ) -> Path:
     """Create a run directory shaped like the ones save_results writes."""
-    run_dir = root / f"{algorithm}_{states}_{garnet_seed}_{random_seed}"
+    run_dir = (
+        root / f"{algorithm}_{states}_{garnet_seed}_{random_seed}_{dynamics}_{reward}"
+    )
     run_dir.mkdir(parents=True)
     algorithm_cfg: dict = {"_target_": algorithm}
     if algorithm == "DampedFP":
@@ -45,7 +49,14 @@ def _write_run(
         "environment": {
             "num_states": states,
             "num_actions": 6,
-            "reward": {"mfgarnet": {"branching_factor": 6, "seed": garnet_seed}},
+            "reward": {
+                "mfgarnet": {
+                    "branching_factor": 6,
+                    "seed": garnet_seed,
+                    "dynamics_structure": dynamics,
+                    "reward_structure": reward,
+                }
+            },
         },
         "experiment": {"random_seed": random_seed},
         "algorithm": algorithm_cfg,
@@ -131,6 +142,150 @@ def test_cell_key_matches_variant_algorithms(tmp_path):
 
     for job in _MODULE.build_jobs(args):
         assert _MODULE.cell_key(job, args) in done
+
+
+def test_other_modality_does_not_satisfy_a_cell(tmp_path):
+    """An A/M run must not make the launcher skip the matching M/A job."""
+    _write_run(
+        tmp_path,
+        20,
+        "PSO",
+        garnet_seed=0,
+        random_seed=42,
+        dynamics="additive",
+        reward="multiplicative",
+    )
+    ma_args = _MODULE._parser().parse_args(
+        [
+            "--states",
+            "20",
+            "--algorithms",
+            "pso",
+            "--num-seeds",
+            "1",
+            "--dynamics-structure",
+            "multiplicative",
+            "--reward-structure",
+            "additive",
+        ]
+    )
+    am_args = _MODULE._parser().parse_args(
+        ["--states", "20", "--algorithms", "pso", "--num-seeds", "1"]
+    )
+    done = _AGG.completed_cells(tmp_path)
+
+    assert _MODULE.cell_key(_MODULE.build_jobs(am_args)[0], am_args) in done
+    assert _MODULE.cell_key(_MODULE.build_jobs(ma_args)[0], ma_args) not in done
+
+
+def test_modalities_are_aggregated_separately(tmp_path):
+    """A/M and M/A results at the same size must not be averaged together."""
+    _write_run(
+        tmp_path,
+        20,
+        "PSO",
+        0,
+        42,
+        final=0.2,
+        dynamics="additive",
+        reward="multiplicative",
+    )
+    _write_run(
+        tmp_path,
+        20,
+        "PSO",
+        0,
+        42,
+        final=0.8,
+        dynamics="multiplicative",
+        reward="additive",
+    )
+    rows = _AGG.collect(tmp_path)
+
+    assert len(rows) == 2
+    by_modality = {row["modality"]: row for row in rows}
+    assert set(by_modality) == {"A/M", "M/A"}
+    assert by_modality["A/M"]["final_exploitability_mean"] == pytest.approx(0.2)
+    assert by_modality["M/A"]["final_exploitability_mean"] == pytest.approx(0.8)
+    assert all(row["runs"] == 1 for row in rows)
+
+
+def test_float32_floor_is_reported_as_a_bound(tmp_path):
+    """Sub-ULP exploitability means "solved", so print a floor, not fake digits."""
+    # 5.96e-08 is 2^-24, one float32 ULP near 1.0.
+    _write_run(tmp_path, 20, "PSO", 0, 42, final=5.96e-08)
+    _write_run(tmp_path, 20, "PSO", 1, 10, final=1.19e-07)
+    rows = _AGG.collect(tmp_path)
+
+    assert rows[0]["seeds_at_floor"] == 2
+    assert (
+        _AGG.format_exploitability(
+            rows[0]["final_exploitability_mean"], rows[0]["final_exploitability_std"]
+        )
+        == _AGG.FLOOR_LABEL
+    )
+
+    table = tmp_path / "table.md"
+    _AGG.write_markdown(rows, table)
+    text = table.read_text()
+    assert _AGG.FLOOR_LABEL in text
+    # The meaningless digits must not appear as a value.
+    assert "5.96e-08 ±" not in text
+
+
+def test_real_values_are_not_floored(tmp_path):
+    _write_run(tmp_path, 20, "PSO", 0, 42, final=0.002)
+    _write_run(tmp_path, 20, "PSO", 1, 10, final=0.004)
+    rows = _AGG.collect(tmp_path)
+
+    assert rows[0]["seeds_at_floor"] == 0
+    assert _AGG.FLOOR_LABEL not in _AGG.format_exploitability(
+        rows[0]["final_exploitability_mean"], rows[0]["final_exploitability_std"]
+    )
+
+
+def test_partially_floored_cell_reports_the_split(tmp_path):
+    """One solved instance and one unsolved must not hide behind a mean."""
+    _write_run(tmp_path, 20, "PSO", 0, 42, final=0.0)
+    _write_run(tmp_path, 20, "PSO", 1, 10, final=0.0038)
+    rows = _AGG.collect(tmp_path)
+
+    assert rows[0]["seeds_at_floor"] == 1
+    assert rows[0]["runs"] == 2
+    table = tmp_path / "table.md"
+    _AGG.write_markdown(rows, table)
+
+    assert "[1/2]" in table.read_text()
+
+
+def test_markdown_separates_modality_sections(tmp_path):
+    _write_run(
+        tmp_path,
+        20,
+        "PSO",
+        0,
+        42,
+        final=0.2,
+        dynamics="additive",
+        reward="multiplicative",
+    )
+    _write_run(
+        tmp_path,
+        20,
+        "PSO",
+        0,
+        42,
+        final=0.8,
+        dynamics="multiplicative",
+        reward="additive",
+    )
+    table = tmp_path / "table.md"
+
+    _AGG.write_markdown(_AGG.collect(tmp_path), table)
+    text = table.read_text()
+
+    assert "## Modality A/M" in text
+    assert "## Modality M/A" in text
 
 
 def test_non_garnet_runs_are_ignored(tmp_path):
