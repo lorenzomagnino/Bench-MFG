@@ -19,7 +19,10 @@ Benchmark suite for Mean Field Game algorithms.
 </div>
 
 > [!NOTE]
-> ⚠️🔧 We are continuously improving BenchMFG. For any issues or problems feel free to contact me at lm2183@cam.ac.uk or open an issue. We are quite responsive!
+> ⚠️🔧 We are continuously improving BenchMFG. For any issues, problems, the need to add new env or algorithms, feel free to contact me at lm2183@cam.ac.uk or open an issue. We are quite responsive!
+
+> [!NOTE]
+> BenchMFG2 (RL, continuous control, partially observability) is in production...
 
 
 ## Contents
@@ -78,18 +81,18 @@ benchmfg env list
 benchmfg algo list
 ```
 
-Run one experiment:
+💥 Run one quick experiment on your machine:
 
 ```bash
-benchmfg train algorithm=pso environment=kinetic_congestion device=cpu
+benchmfg train algorithm=omd environment=four_rooms_obstacles device=cpu
 ```
 
 ## Registered Configs
 
-Environments:
+**Environments**:
 `contraction_game`, `four_rooms_obstacles`, `kinetic_congestion`, `lasry_lions_chain`, `mf_garnet`, `multiple_equilibria`, `no_interaction_game`, `potential_game2d`, `rock_paper_scissors`, `sis_epidemic`.
 
-Algorithms:
+**Algorithms**:
 `damped_fixed_point`, `omd`, `pi`, `pso`.
 
 Use `benchmfg env list` and `benchmfg algo list` for the installed package’s authoritative list.
