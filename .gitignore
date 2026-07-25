@@ -45,6 +45,8 @@ garnet_logs/
 
 # Hydra / experiment outputs
 outputs/
+outputs_*/
+garnet_logs*/
 multirun/
 .hydra_logs/
 profiling_output/
