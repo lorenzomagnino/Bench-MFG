@@ -100,6 +100,14 @@ def _parser() -> argparse.ArgumentParser:
         help="re-run cells that already have saved results",
     )
     parser.add_argument(
+        "--job-timeout",
+        type=float,
+        default=3600.0,
+        help="kill a cell after this many seconds and treat it as failed "
+        "(JAX can deadlock on a loaded host; without this one hung cell "
+        "blocks the whole sweep). 0 disables.",
+    )
+    parser.add_argument(
         "--table",
         type=Path,
         default=Path("garnet_scaling.md"),
@@ -197,11 +205,26 @@ def _run(job: Job, args: argparse.Namespace, total: int) -> float:
         f"seed={job.garnet_seed}{where}"
     )
     started = time.perf_counter()
+    timeout = args.job_timeout or None
     try:
         with log_path.open("w") as handle:
-            result = subprocess.run(
-                command_for(job, args), env=env, stdout=handle, stderr=subprocess.STDOUT
-            )
+            try:
+                result = subprocess.run(
+                    command_for(job, args),
+                    env=env,
+                    stdout=handle,
+                    stderr=subprocess.STDOUT,
+                    timeout=timeout,
+                )
+            except subprocess.TimeoutExpired:
+                elapsed = time.perf_counter() - started
+                log(
+                    f"TIMEOUT {job.index + 1}/{total}  S={job.states} {job.algorithm} "
+                    f"seed={job.garnet_seed} after {elapsed:.0f}s -- killed, will retry"
+                )
+                raise RuntimeError(
+                    f"job {job.index} timed out; see {log_path}"
+                ) from None
     finally:
         if gpu is not None:
             _GPU_POOL.put(gpu)

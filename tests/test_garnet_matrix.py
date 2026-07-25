@@ -356,3 +356,40 @@ def test_markdown_has_algorithm_by_states_pivot(tmp_path):
     # OMD has no S=400 cell yet, so that entry stays empty.
     omd_line = next(line for line in text.splitlines() if line.startswith("| OMD "))
     assert omd_line.strip().endswith("| - |")
+
+
+def test_hung_cell_times_out_and_frees_its_gpu(tmp_path, monkeypatch):
+    """A deadlocked cell must not block the sweep: kill it, fail it, release the GPU."""
+    import queue
+    import subprocess
+
+    args = _MODULE._parser().parse_args(
+        [
+            "--states",
+            "20",
+            "--algorithms",
+            "pso",
+            "--num-seeds",
+            "1",
+            "--job-timeout",
+            "0.2",
+            "--output-root",
+            str(tmp_path / "out"),
+            "--log-dir",
+            str(tmp_path / "logs"),
+        ]
+    )
+    job = _MODULE.build_jobs(args)[0]
+
+    def fake_run(*a, timeout=None, **kw):
+        raise subprocess.TimeoutExpired(cmd="x", timeout=timeout)
+
+    monkeypatch.setattr(_MODULE.subprocess, "run", fake_run)
+    monkeypatch.setattr(_MODULE, "_GPU_POOL", queue.Queue())
+    _MODULE._GPU_POOL.put(7)
+
+    with pytest.raises(RuntimeError, match="timed out"):
+        _MODULE._run(job, args, 1)
+
+    # The GPU must go back to the pool or later cells would starve.
+    assert _MODULE._GPU_POOL.get_nowait() == 7
