@@ -84,10 +84,12 @@ def get_experiment_name_with_hyperparams(cfg: MFGConfig) -> str:
         w = cfg.algorithm.pso.w
         c1 = cfg.algorithm.pso.c1
         c2 = cfg.algorithm.pso.c2
+        num_particles = cfg.algorithm.pso.num_particles
         hyperparams.append(f"temp{temp:.2f}".replace(".", "p"))
         hyperparams.append(f"w{w:.2f}".replace(".", "p"))
         hyperparams.append(f"c1{c1:.2f}".replace(".", "p"))
         hyperparams.append(f"c2{c2:.2f}".replace(".", "p"))
+        hyperparams.append(f"particles{num_particles}")
 
     elif algo_target == "pi":
         variant = cfg.algorithm.pi.variant

@@ -16,3 +16,4 @@ colors:
   figure_background: "white"
   policy2d_action_cmaps: ["Greens", "Purples", "Oranges", "Blues", "Greys"]
   policy2d_action_labels: ["up", "right", "down", "left", "stay"]
+  policy2d_action_colors: ["#7B2FBE", "#4A55A2", "#FA8072", "#2D6A4F", "#1B7A7A"]

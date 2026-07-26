@@ -577,11 +577,12 @@ def plot_policy_2D(
     import matplotlib.colors as mcolors
 
     # Resolve solid colors for each action
-    if (
-        colors.policy2d_action_colors is not None
-        and len(colors.policy2d_action_colors) >= N_actions
-    ):
-        action_colors_hex = colors.policy2d_action_colors[:N_actions]
+    # Use OmegaConf-safe access: YAML may omit optional keys under struct mode.
+    from omegaconf import OmegaConf
+
+    action_colors_cfg = OmegaConf.select(colors, "policy2d_action_colors")
+    if action_colors_cfg is not None and len(action_colors_cfg) >= N_actions:
+        action_colors_hex = list(action_colors_cfg)[:N_actions]
     else:
         action_colors_hex = ["#7B2FBE", "#4A55A2", "#FA8072", "#2D6A4F", "#1B7A7A"][
             :N_actions
