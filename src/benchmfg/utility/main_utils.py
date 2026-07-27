@@ -91,13 +91,14 @@ def train_model(
 
     final_exploitability = exploitabilities[-1] if len(exploitabilities) > 0 else "N/A"
     log.info("Final exploitability: %s", final_exploitability)
-    mean_field_fig, policy_fig = plot_results(
-        (optimal_policy, mean_field, exploitabilities),
-        cfg,
-        run_id=run_id,
-    )
-    upload_mean_field_plot(logger, cfg, mean_field_fig, run_id=run_id)
-    upload_policy_plot(logger, cfg, policy_fig, run_id=run_id)
+    if cfg.experiment.make_plots:
+        mean_field_fig, policy_fig = plot_results(
+            (optimal_policy, mean_field, exploitabilities),
+            cfg,
+            run_id=run_id,
+        )
+        upload_mean_field_plot(logger, cfg, mean_field_fig, run_id=run_id)
+        upload_policy_plot(logger, cfg, policy_fig, run_id=run_id)
 
     if logger is not None:
         logger.finish()

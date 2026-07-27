@@ -63,6 +63,7 @@ class ExperimentConfig:
     name: str = "default_experiment"
     mode: int = 1
     is_saved: bool = False
+    make_plots: bool = True
     random_seed: int = 42
     description: str = "Default configuration for Bench-MFG experiments"
     run: RunConfig = field(default_factory=RunConfig)

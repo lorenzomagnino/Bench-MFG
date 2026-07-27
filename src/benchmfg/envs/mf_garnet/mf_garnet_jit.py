@@ -14,8 +14,10 @@ def _compute_transition_distribution(
     """Compute p(.|s,a,mu) over all next-states as a dense vector."""
     mu = mean_field / jnp.maximum(mean_field.sum(), environment.cfg.eps)
 
-    P0_dense = jnp.array(environment.P0_dense)
-    C = jnp.array(environment.C)
+    # These are traced once per compilation and folded in as constants, so there is
+    # nothing to gain from caching them on the environment.
+    P0_dense = jnp.asarray(environment.P0_dense)
+    C = jnp.asarray(environment.C)
 
     base = P0_dense[state, action]
 
@@ -110,8 +112,8 @@ def reward_mf_garnet(
 
     mu = mean_field / jnp.maximum(mean_field.sum(), environment.cfg.eps)
 
-    M = jnp.array(environment.M)
-    R0 = jnp.array(environment.R0)
+    M = jnp.asarray(environment.M)
+    R0 = jnp.asarray(environment.R0)
     interaction = M[state] @ mu
 
     r0 = R0[state, action]

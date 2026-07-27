@@ -105,8 +105,10 @@ class MFGarnet(MFGStationary):
                 base[self.P0_support[s, a]] += self.P0_prob[s, a]
                 self.P0_dense[s, a] = base
 
+        # float32: C is O(S^3 A) and dominates memory (3.1 GB at S=400 in float64).
+        # JAX downcasts to float32 anyway (x64 disabled), so the values are unchanged.
         self.C = self.rng.normal(size=(N_states, N_actions, N_states, N_states)).astype(
-            float
+            np.float32
         )
 
         # Base reward R0(s,a)

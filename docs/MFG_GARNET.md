@@ -68,6 +68,39 @@ benchmfg train environment=mf_garnet algorithm=pso \
 
 The helper scripts in `scripts/garnet/` automate this protocol.
 
+## Matrix Runs
+
+The parameterized launcher covers PSO, OMD, all three DampedFP schedules, and
+all three PI variants. The current initial benchmark uses three Garnet seeds:
+
+```bash
+python scripts/garnet/run_garnet_matrix.py \
+  --states 100 --actions 6 --branching-factor 6 \
+  --num-seeds 3 --no-plots
+```
+
+The scaling benchmark keeps actions and branching fixed while sweeping states:
+
+```bash
+python scripts/garnet/run_garnet_matrix.py \
+  --states 20 80 130 400 --actions 6 --branching-factor 6 \
+  --num-seeds 3 --no-plots
+```
+
+Use `--dry-run` to inspect jobs, `--parallel N` for bounded independent CPU
+jobs, and `--job-index N` for one scheduler-array task. For a pinned GPU, use
+`--device cuda --gpu-id N`.
+
+Aggregate saved runs into Markdown and CSV:
+
+```bash
+python scripts/garnet/aggregate_scaling.py outputs \
+  --markdown garnet_scaling.md --csv garnet_scaling.csv
+```
+
+The launcher defaults to ten seeds for the eventual benchmark; pass
+`--num-seeds 3` for the current protocol.
+
 ## Key Config Fields
 
 ```yaml

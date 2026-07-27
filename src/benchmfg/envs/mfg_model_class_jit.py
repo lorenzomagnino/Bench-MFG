@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import partial
+import re
 
 import jax
 import jax.numpy as jnp
@@ -9,19 +10,50 @@ from benchmfg.envs.mfg_model_class import MFGStationary
 
 jax_jit = partial(jax.jit, static_argnames="spec")
 
+# Steps used to drive the policy-induced mean field toward its fixed point inside
+# exploitability. This loop is ~96% of exploitability cost (50 of 52 transition-tensor
+# builds), so it is the main runtime knob.
+#
+# Measured on MF-Garnet (S=80, 5 random policies): ||mu_{k+1} - mu_k||_1 falls from
+# 1.2e-1 to ~1.7e-2 by k=4, then plateaus at ~1.2e-2 and oscillates without ever
+# converging. The floor is set by the inverse-CDF discretisation: next states are
+# integer indices drawn from N_noises atoms, so a step of 1/64 ~ 1.6e-2 is the
+# smallest change the map can express. Tolerance-based early exit is therefore
+# useless here -- it would always run to the cap. Lowering this constant trades
+# accuracy for near-linear speedup, but it changes results, so it stays at 50.
+MEAN_FIELD_FIXED_POINT_ITERATIONS = 50
+
 
 def get_jax_device(device_str: str = "cpu"):
-    """Return the first JAX device matching the requested backend.
+    """Return the requested JAX device, with explicit GPU selection.
 
     Args:
-        device_str: ``"cuda"`` maps to the JAX GPU backend; anything else uses CPU.
-                    Falls back to CPU when the requested backend is unavailable.
+        device_str: ``"cpu"``, ``"cuda"``, or ``"cuda:N"``.
+
+    Raises:
+        RuntimeError: If a requested GPU backend or index is unavailable.
     """
-    backend = "gpu" if device_str == "cuda" else "cpu"
-    try:
-        return jax.devices(backend)[0]
-    except RuntimeError:
+    device = str(device_str).lower()
+    if device == "cpu":
         return jax.devices("cpu")[0]
+
+    match = re.fullmatch(r"cuda(?::(\d+))?", device)
+    if match is None:
+        raise ValueError(f"Unsupported device {device_str!r}; use cpu, cuda, or cuda:N")
+
+    try:
+        devices = jax.devices("gpu")
+    except RuntimeError as exc:
+        raise RuntimeError(
+            f"GPU requested but no JAX GPU backend is available: {exc}"
+        ) from exc
+
+    index = int(match.group(1) or 0)
+    if index >= len(devices):
+        raise RuntimeError(
+            f"GPU index {index} is unavailable; found {len(devices)} visible GPU(s)"
+        )
+    return devices[index]
 
 
 @dataclass(frozen=True)
@@ -155,20 +187,17 @@ def mean_field_by_transition_kernel_multi_jax(
     return mf_final
 
 
-@jax_jit
-def Vpi_opt_jax(
-    mean_field: jnp.ndarray,
+def _v_opt_from_tensors(
+    rewards_sa: jnp.ndarray,
+    next_states_san: jnp.ndarray,
+    noise_prob: jnp.ndarray,
     spec: EnvSpec,
 ) -> tuple[jnp.ndarray, jnp.ndarray]:
-    """Computes the optimal value function using jax.lax.scan."""
+    """Optimal value function from a prebuilt reward matrix and transition tensor."""
     S, A = spec.environment.N_states, spec.environment.N_actions
     if spec.environment.horizon < 2:
         zero_actions = jnp.zeros(S, dtype=jnp.int32)
         return jnp.zeros(S), jax.nn.one_hot(zero_actions, num_classes=A)
-
-    noise_prob = jnp.asarray(spec.environment.noise_prob)
-    rewards_sa = _reward_matrix(mean_field, spec)
-    next_states_san = _transition_tensor(mean_field, spec)
 
     def bellman_step(V_k, _):
         Q_sa = _q_from_value(
@@ -189,16 +218,28 @@ def Vpi_opt_jax(
 
 
 @jax_jit
-def V_eval_jax(
-    policy: jnp.ndarray,
+def Vpi_opt_jax(
     mean_field: jnp.ndarray,
     spec: EnvSpec,
+) -> tuple[jnp.ndarray, jnp.ndarray]:
+    """Computes the optimal value function using jax.lax.scan."""
+    return _v_opt_from_tensors(
+        _reward_matrix(mean_field, spec),
+        _transition_tensor(mean_field, spec),
+        jnp.asarray(spec.environment.noise_prob),
+        spec,
+    )
+
+
+def _v_eval_from_tensors(
+    policy: jnp.ndarray,
+    rewards_sa: jnp.ndarray,
+    next_states_san: jnp.ndarray,
+    noise_prob: jnp.ndarray,
+    spec: EnvSpec,
 ) -> jnp.ndarray:
-    """Evaluates the value function using jax.lax.scan."""
+    """Policy value from a prebuilt reward matrix and transition tensor."""
     S = spec.environment.N_states
-    noise_prob = jnp.asarray(spec.environment.noise_prob)
-    rewards_sa = _reward_matrix(mean_field, spec)
-    next_states_san = _transition_tensor(mean_field, spec)
 
     def bellman_step_eval(V_k, _):
         Q_sa = _q_from_value(
@@ -213,6 +254,22 @@ def V_eval_jax(
     )
 
     return V_final
+
+
+@jax_jit
+def V_eval_jax(
+    policy: jnp.ndarray,
+    mean_field: jnp.ndarray,
+    spec: EnvSpec,
+) -> jnp.ndarray:
+    """Evaluates the value function using jax.lax.scan."""
+    return _v_eval_from_tensors(
+        policy,
+        _reward_matrix(mean_field, spec),
+        _transition_tensor(mean_field, spec),
+        jnp.asarray(spec.environment.noise_prob),
+        spec,
+    )
 
 
 @jax_jit
@@ -265,10 +322,20 @@ def exploitability_jax(
     policy = policy.reshape(spec.environment.N_states, spec.environment.N_actions)
 
     mean_field_pi = mean_field_by_transition_kernel_multi_jax(
-        policy, spec, num_iterations=50, initial_mean_field=initial_mean_field
+        policy,
+        spec,
+        num_iterations=MEAN_FIELD_FIXED_POINT_ITERATIONS,
+        initial_mean_field=initial_mean_field,
     )
-    V_pi = V_eval_jax(policy, mean_field_pi, spec)
-    V_opt, _ = Vpi_opt_jax(mean_field_pi, spec)
+
+    # Both value functions use the same mean field, so build the reward matrix and
+    # transition tensor once instead of once per call.
+    noise_prob = jnp.asarray(spec.environment.noise_prob)
+    rewards_sa = _reward_matrix(mean_field_pi, spec)
+    next_states_san = _transition_tensor(mean_field_pi, spec)
+
+    V_pi = _v_eval_from_tensors(policy, rewards_sa, next_states_san, noise_prob, spec)
+    V_opt, _ = _v_opt_from_tensors(rewards_sa, next_states_san, noise_prob, spec)
 
     return jnp.dot(mean_field_pi, V_opt) - jnp.dot(mean_field_pi, V_pi)
 
@@ -319,7 +386,12 @@ def exploitability_batch_pmap(
     Returns:
     - Array of exploitabilities with shape (num_particles,)
     """
-    n_devices = len(jax.devices())
+    # Shard across devices on the same platform as the incoming policies. Using the
+    # default backend here would pmap onto the GPUs while the arrays sit on CPU
+    # (device=cpu on a GPU host), which fails with a sharding mismatch.
+    arg_devices = list(policies.devices())
+    devices = jax.devices(arg_devices[0].platform) if arg_devices else jax.devices()
+    n_devices = len(devices)
     if n_devices == 1:
         return exploitability_batch_jax(
             policies, spec, initial_mean_field, num_particles
@@ -344,5 +416,5 @@ def exploitability_batch_pmap(
             shard
         )
 
-    results = jax.pmap(_per_device_batch)(policies_sharded)
+    results = jax.pmap(_per_device_batch, devices=devices)(policies_sharded)
     return results.reshape(-1)[:num_particles]

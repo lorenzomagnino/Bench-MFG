@@ -4,8 +4,8 @@ name: "MFGarnet"
 grid:
   is_grid: false
 
-num_states: 20
-num_actions: 4
+num_states: 100
+num_actions: 6
 num_noises: 64
 horizon: 100
 gamma: 0.90
@@ -16,7 +16,7 @@ dynamics:
 reward:
   mfgarnet:
     seed: 0
-    branching_factor: 5
+    branching_factor: 6
 
     dynamics_structure: "additive"     # "additive" | "multiplicative"
     cp: 0.5
