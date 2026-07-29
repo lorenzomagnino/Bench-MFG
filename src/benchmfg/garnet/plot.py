@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-import sys
 
 import matplotlib
 
@@ -16,8 +15,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from aggregate_scaling import (  # noqa: E402
+from benchmfg.garnet.aggregate import (
     EXPLOITABILITY_FLOOR,
     aggregate,
     modality,
@@ -136,17 +134,18 @@ def _plot(
     print(f"wrote {path}")
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("outputs_dir", type=Path)
-    parser.add_argument("--out-dir", type=Path, default=Path("."))
+    parser.add_argument("--out-dir", type=Path, default=Path("outputs"))
     parser.add_argument("--prefix", default="garnet_scaling")
+    parser.add_argument("--formats", nargs="+", choices=["png", "pdf"], default=["png"])
     parser.add_argument(
         "--modality",
         nargs="+",
         help='only plot these modalities, e.g. "A/M" (default: one figure pair each)',
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     records = scan_runs(args.outputs_dir)
     rows = aggregate(records)
@@ -175,15 +174,16 @@ def main() -> int:
             ),
             ("runtime", "runtime_s", "Wall-clock time (s)", "runtime"),
         ):
-            _plot(
-                subset_rows,
-                subset_records,
-                value,
-                record_key,
-                ylabel,
-                f"MF-Garnet ({label}): {what} vs state-space size",
-                args.out_dir / f"{args.prefix}_{slug}_{what}.png",
-            )
+            for fmt in args.formats:
+                _plot(
+                    subset_rows,
+                    subset_records,
+                    value,
+                    record_key,
+                    ylabel,
+                    f"MF-Garnet ({label}): {what} vs state-space size",
+                    args.out_dir / f"{args.prefix}_{slug}_{what}.{fmt}",
+                )
     return 0
 
 

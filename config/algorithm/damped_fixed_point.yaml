@@ -15,3 +15,32 @@ dampedfp:
   #----- hyperparameters -----
   lambda_schedule: "fictitious_play"  # "pure" | "damped" | "fictitious_play"
   damped_constant: 0.2  # for "damped" variant
+  best_response: "exact"  # "exact" | "ppo" | "dqn"
+  ppo_total_timesteps: 10000
+  ppo_n_steps: 128
+  ppo_batch_size: 64
+  ppo_learning_rate: 0.0003
+  ppo_n_epochs: 10
+  ppo_seed: 0
+  ppo_reset_uniform_eps: 0.1
+  ppo_episode_length: null
+  ppo_normalize_reward: true
+  ppo_device: cpu
+  ppo_n_envs: 1
+  ppo_warm_start: false
+  dqn_total_timesteps: 10000
+  dqn_learning_rate: 0.001
+  dqn_buffer_size: 10000
+  dqn_learning_starts: 100
+  dqn_batch_size: 32
+  dqn_train_freq: 1
+  dqn_gradient_steps: 1
+  dqn_exploration_fraction: 0.1
+  dqn_exploration_final_eps: 0.05
+  dqn_seed: 0
+  dqn_reset_uniform_eps: 0.1
+  dqn_episode_length: null
+  dqn_normalize_reward: false
+  dqn_device: cpu
+  dqn_n_envs: 1
+  dqn_warm_start: true

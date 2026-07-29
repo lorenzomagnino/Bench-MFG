@@ -8,6 +8,7 @@ from benchmfg.envs.mfg_model_class_jit import (
     exploitability_jax,
     mean_field_by_transition_kernel_multi_jax,
 )
+from benchmfg.rl import BestResponseSolver, normalize_tabular_policy
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -35,6 +36,7 @@ class DampedFP_jax:
         damped_constant: float = 0.2,
         num_transition_steps: int = 20,
         jax_device=None,
+        best_response_solver: BestResponseSolver | None = None,
     ) -> None:
         self.horizon, self.N_states, self.N_actions = (
             env_spec.environment.horizon,
@@ -51,6 +53,7 @@ class DampedFP_jax:
         self.jax_device = (
             jax_device if jax_device is not None else jax.devices("cpu")[0]
         )
+        self.best_response_solver = best_response_solver
 
     def _put(self, arr):
         """Place a numpy/JAX array on the configured JAX device."""
@@ -62,6 +65,17 @@ class DampedFP_jax:
         if self.lambda_schedule == "fictitious_play":
             return 1.0 / (k + 1.0)
         return float(self.damped_constant)
+
+    def _best_response(self, mean_field: jax.Array) -> jax.Array:
+        if self.best_response_solver is None:
+            _, policy = Vpi_opt_jax(mean_field, self.env_spec)
+            return policy
+        policy = normalize_tabular_policy(
+            self.best_response_solver.solve(np.asarray(mean_field)),
+            self.N_states,
+            self.N_actions,
+        )
+        return self._put(policy)
 
     def _average_policies_uniform(self, policies: list[jax.Array]) -> jax.Array:
         avg = jnp.mean(jnp.stack(policies, axis=0), axis=0)
@@ -124,7 +138,7 @@ class DampedFP_jax:
         if logger is not None:
             logger.log_iteration(0, exploitabilities[0], np.asarray(state.mean_field))
         for k in tqdm(range(1, self.num_iterations + 1), desc="Running"):
-            _, policy_best_response = Vpi_opt_jax(state.mean_field, self.env_spec)
+            policy_best_response = self._best_response(state.mean_field)
             mean_field_br = mean_field_by_transition_kernel_multi_jax(
                 policy_best_response,
                 self.env_spec,
