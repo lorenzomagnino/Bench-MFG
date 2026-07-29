@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "bench-mfg-suite"
-version = "0.1.0"
+version = "0.1.1"
 description = "A benchmark suite for Mean Field Game algorithms"
 readme = "README.md"
 license = {text = "MIT"}
