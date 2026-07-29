@@ -52,6 +52,7 @@ from benchmfg.learner.jax.pso_jax import PSO_jax
 from benchmfg.learner.python.fp_py import DampedFP_python
 from benchmfg.learner.python.omd_py import OMD_python
 from benchmfg.learner.python.pi_py import PI_python
+from benchmfg.rl import DQNBestResponse, PPOBestResponse
 
 # =============================================================================
 # Environment to JIT functions mapping
@@ -136,6 +137,7 @@ def _create_fp_solver_python(
         lambda_schedule=cast(LambdaSchedule, algo_cfg.dampedfp.lambda_schedule),
         damped_constant=damped_constant,
         num_transition_steps=algo_cfg.dampedfp.num_transition_steps,
+        best_response_solver=_create_best_response_solver(environment, algo_cfg),
     )
 
 
@@ -154,6 +156,48 @@ def _create_pi_solver_python(
         temperature=algo_cfg.pi.temperature,
         damped_constant=algo_cfg.pi.damped_constant,
     )
+
+
+def _create_best_response_solver(environment: MFGStationary, algo_cfg: AlgorithmConfig):
+    if algo_cfg.dampedfp.best_response == "exact":
+        return None
+    if algo_cfg.dampedfp.best_response == "ppo":
+        return PPOBestResponse(
+            model=environment,
+            total_timesteps=algo_cfg.dampedfp.ppo_total_timesteps,
+            n_steps=algo_cfg.dampedfp.ppo_n_steps,
+            batch_size=algo_cfg.dampedfp.ppo_batch_size,
+            learning_rate=algo_cfg.dampedfp.ppo_learning_rate,
+            n_epochs=algo_cfg.dampedfp.ppo_n_epochs,
+            seed=algo_cfg.dampedfp.ppo_seed,
+            reset_uniform_eps=algo_cfg.dampedfp.ppo_reset_uniform_eps,
+            episode_length=algo_cfg.dampedfp.ppo_episode_length,
+            normalize_reward=algo_cfg.dampedfp.ppo_normalize_reward,
+            device=algo_cfg.dampedfp.ppo_device,
+            n_envs=algo_cfg.dampedfp.ppo_n_envs,
+            warm_start=algo_cfg.dampedfp.ppo_warm_start,
+        )
+    if algo_cfg.dampedfp.best_response == "dqn":
+        return DQNBestResponse(
+            model=environment,
+            total_timesteps=algo_cfg.dampedfp.dqn_total_timesteps,
+            learning_rate=algo_cfg.dampedfp.dqn_learning_rate,
+            buffer_size=algo_cfg.dampedfp.dqn_buffer_size,
+            learning_starts=algo_cfg.dampedfp.dqn_learning_starts,
+            batch_size=algo_cfg.dampedfp.dqn_batch_size,
+            train_freq=algo_cfg.dampedfp.dqn_train_freq,
+            gradient_steps=algo_cfg.dampedfp.dqn_gradient_steps,
+            exploration_fraction=algo_cfg.dampedfp.dqn_exploration_fraction,
+            exploration_final_eps=algo_cfg.dampedfp.dqn_exploration_final_eps,
+            seed=algo_cfg.dampedfp.dqn_seed,
+            reset_uniform_eps=algo_cfg.dampedfp.dqn_reset_uniform_eps,
+            episode_length=algo_cfg.dampedfp.dqn_episode_length,
+            normalize_reward=algo_cfg.dampedfp.dqn_normalize_reward,
+            device=algo_cfg.dampedfp.dqn_device,
+            n_envs=algo_cfg.dampedfp.dqn_n_envs,
+            warm_start=algo_cfg.dampedfp.dqn_warm_start,
+        )
+    raise ValueError(f"Unknown best response: {algo_cfg.dampedfp.best_response}")
 
 
 # =============================================================================
@@ -224,6 +268,7 @@ def _create_fp_solver_jax(
         damped_constant=damped_constant,
         num_transition_steps=algo_cfg.dampedfp.num_transition_steps,
         jax_device=jax_device,
+        best_response_solver=_create_best_response_solver(environment, algo_cfg),
     )
 
 

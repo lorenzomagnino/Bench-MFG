@@ -3,6 +3,7 @@ import logging
 from typing import Literal
 
 from benchmfg.envs.mfg_model_class import MFGStationary
+from benchmfg.rl import BestResponseSolver, normalize_tabular_policy
 import numpy as np
 from tqdm import tqdm
 
@@ -27,6 +28,7 @@ class DampedFP_python:
         lambda_schedule: LambdaSchedule = "damped",
         damped_constant: float = 0.2,
         num_transition_steps: int = 20,
+        best_response_solver: BestResponseSolver | None = None,
     ) -> None:
         self.horizon, self.N_states, self.N_actions = (
             model.horizon,
@@ -40,6 +42,17 @@ class DampedFP_python:
         self.damped_constant = damped_constant
         self.lambda_schedule = lambda_schedule
         self.num_transition_steps = int(num_transition_steps)
+        self.best_response_solver = best_response_solver
+
+    def _best_response(self, mean_field: np.ndarray) -> np.ndarray:
+        if self.best_response_solver is None:
+            _, policy = self.model.Vpi_opt(mean_field)
+            return policy
+        return normalize_tabular_policy(
+            self.best_response_solver.solve(mean_field),
+            self.N_states,
+            self.N_actions,
+        )
 
     def _lambda_k(self, k: int) -> float:
         if self.lambda_schedule == "pure":
@@ -100,7 +113,7 @@ class DampedFP_python:
         if logger is not None:
             logger.log_iteration(0, exploitabilities[0], state.mean_field)
         for k in tqdm(range(1, self.num_iterations + 1), desc="Running"):
-            _, policy_best_response = self.model.Vpi_opt(state.mean_field)
+            policy_best_response = self._best_response(state.mean_field)
             mean_field_br = self.model.mean_field_by_transition_kernel(
                 policy_best_response, num_transition_steps=self.num_transition_steps
             )

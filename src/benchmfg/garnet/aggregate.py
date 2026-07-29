@@ -286,21 +286,25 @@ def write_markdown(rows: list[dict], path: Path) -> None:
             f"{row['final_exploitability_mean']:.6g} +/- {row['final_exploitability_std']:.6g} | "
             f"{row['final_exploitability_median']:.6g} |"
         )
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines) + "\n")
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("outputs_dir", type=Path)
-    parser.add_argument("--markdown", type=Path, default=Path("garnet_scaling.md"))
+    parser.add_argument("--markdown", type=Path)
     parser.add_argument("--csv", type=Path)
     parser.add_argument(
         "--print", action="store_true", help="also echo the tables to stdout"
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    if args.markdown is None:
+        args.markdown = args.outputs_dir / "garnet_scaling.md"
     rows = collect(args.outputs_dir)
     write_markdown(rows, args.markdown)
     if args.csv:
+        args.csv.parent.mkdir(parents=True, exist_ok=True)
         with args.csv.open("w", newline="") as file:
             writer = csv.DictWriter(file, fieldnames=rows[0].keys() if rows else [])
             writer.writeheader()

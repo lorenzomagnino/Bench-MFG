@@ -21,8 +21,7 @@ import sys
 import threading
 import time
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from aggregate_scaling import collect, completed_cells, write_markdown  # noqa: E402
+from benchmfg.garnet.aggregate import collect, completed_cells, write_markdown
 
 ALGORITHM_SEEDS = (42, 10, 111, 1032, 999, 1234, 5678, 9012, 3456, 7890)
 ALGORITHMS = (
@@ -109,8 +108,10 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--table",
+        "--markdown",
+        dest="table",
         type=Path,
-        default=Path("garnet_scaling.md"),
+        default=None,
         help="scaling table refreshed after each finished cell",
     )
     return parser
@@ -250,9 +251,11 @@ def refresh_table(args: argparse.Namespace) -> int:
     return len(rows)
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     global _GPU_POOL
-    args = _parser().parse_args()
+    args = _parser().parse_args(argv)
+    if args.table is None:
+        args.table = args.output_root / "garnet_scaling.md"
     if args.gpu_ids:
         # Each worker owns one GPU, so concurrency is fixed by the GPU count.
         args.device = "cuda"

@@ -123,6 +123,11 @@ solver = benchmfg.make_solver(
     environment=environment,
     initial_policy=initial_policy,
 )
+
+fixed_mf_env = benchmfg.make_fixed_mean_field_env(
+    environment,
+    environment.stationary_mean_field,
+)
 ```
 
 ## Outputs And Plots

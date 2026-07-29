@@ -66,7 +66,7 @@ benchmfg train environment=mf_garnet algorithm=pso \
   experiment.random_seed=10
 ```
 
-The helper scripts in `scripts/garnet/` automate this protocol.
+The packaged Garnet commands automate this protocol.
 
 ## Matrix Runs
 
@@ -74,7 +74,7 @@ The parameterized launcher covers PSO, OMD, all three DampedFP schedules, and
 all three PI variants. The current initial benchmark uses three Garnet seeds:
 
 ```bash
-python scripts/garnet/run_garnet_matrix.py \
+benchmfg garnet scaling \
   --states 100 --actions 6 --branching-factor 6 \
   --num-seeds 3 --no-plots
 ```
@@ -82,24 +82,32 @@ python scripts/garnet/run_garnet_matrix.py \
 The scaling benchmark keeps actions and branching fixed while sweeping states:
 
 ```bash
-python scripts/garnet/run_garnet_matrix.py \
+benchmfg garnet scaling \
   --states 20 80 130 400 --actions 6 --branching-factor 6 \
   --num-seeds 3 --no-plots
 ```
 
 Use `--dry-run` to inspect jobs, `--parallel N` for bounded independent CPU
 jobs, and `--job-index N` for one scheduler-array task. For a pinned GPU, use
-`--device cuda --gpu-id N`.
+`--device cuda --gpu-id N`. The full scaling run is intended for an L40/L40S-class
+GPU; use a smaller `--states` list for local CPU checks.
 
 Aggregate saved runs into Markdown and CSV:
 
 ```bash
-python scripts/garnet/aggregate_scaling.py outputs \
-  --markdown garnet_scaling.md --csv garnet_scaling.csv
+benchmfg garnet aggregate outputs \
+  --markdown outputs/garnet_scaling.md --csv outputs/garnet_scaling.csv
 ```
 
-The launcher defaults to ten seeds for the eventual benchmark; pass
-`--num-seeds 3` for the current protocol.
+Render scaling plots. PNG is the default; request PDF explicitly when needed:
+
+```bash
+benchmfg garnet plot-scaling outputs \
+  --out-dir outputs --prefix garnet_scaling --modality A/M --formats pdf
+```
+
+The launcher defaults to two seeds for a quick check; pass `--num-seeds 3` or
+more for benchmark runs.
 
 ## Key Config Fields
 

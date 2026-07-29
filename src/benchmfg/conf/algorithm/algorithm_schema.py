@@ -61,6 +61,35 @@ class DampedFPConfig:
     damped_constant: float | None = None  # for damped_fixed_point variant
     num_transition_steps: int = 20
     init_policy_temp: float = 0.1  # temperature for initial policy
+    best_response: str = "exact"  # "exact" | "ppo" | "dqn"
+    ppo_total_timesteps: int = 10000
+    ppo_n_steps: int = 128
+    ppo_batch_size: int = 64
+    ppo_learning_rate: float = 3e-4
+    ppo_n_epochs: int = 10
+    ppo_seed: int = 0
+    ppo_reset_uniform_eps: float = 0.1
+    ppo_episode_length: int | None = None
+    ppo_normalize_reward: bool = True
+    ppo_device: str = "cpu"
+    ppo_n_envs: int = 1
+    ppo_warm_start: bool = False
+    dqn_total_timesteps: int = 10000
+    dqn_learning_rate: float = 1e-3
+    dqn_buffer_size: int = 10000
+    dqn_learning_starts: int = 100
+    dqn_batch_size: int = 32
+    dqn_train_freq: int = 1
+    dqn_gradient_steps: int = 1
+    dqn_exploration_fraction: float = 0.1
+    dqn_exploration_final_eps: float = 0.05
+    dqn_seed: int = 0
+    dqn_reset_uniform_eps: float = 0.1
+    dqn_episode_length: int | None = None
+    dqn_normalize_reward: bool = False
+    dqn_device: str = "cpu"
+    dqn_n_envs: int = 1
+    dqn_warm_start: bool = True
 
 
 @dataclass

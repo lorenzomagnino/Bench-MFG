@@ -1,25 +1,10 @@
-import importlib.util
 from pathlib import Path
-import sys
 
 from benchmfg.envs.mfg_model_class_jit import get_jax_device
+from benchmfg.garnet import aggregate as _AGG, matrix as _MODULE
 import numpy as np
 import pytest
 import yaml
-
-
-def _load(name: str):
-    path = Path(__file__).parents[1] / "scripts/garnet" / f"{name}.py"
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
-_MODULE = _load("run_garnet_matrix")
-_AGG = _load("aggregate_scaling")
 
 
 def _write_run(

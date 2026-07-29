@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from hydra import compose, initialize_config_module
 from omegaconf import DictConfig
 
+from benchmfg.rl import FixedMeanFieldEnv
 from benchmfg.train import run
 from benchmfg.utility.create_environment import create_environment
 from benchmfg.utility.create_solver import create_solver
@@ -54,6 +55,11 @@ def make_solver(
     if environment is None or initial_policy is None:
         environment, initial_policy = create_environment(cfg)
     return create_solver(environment, initial_policy, cfg)
+
+
+def make_fixed_mean_field_env(environment, mean_field):
+    """Create a Gymnasium env for the fixed-mean-field MDP."""
+    return FixedMeanFieldEnv(environment, mean_field)
 
 
 def run_experiment(cfg_or_overrides: DictConfig | Sequence[str] | None = None) -> None:

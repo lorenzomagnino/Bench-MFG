@@ -148,6 +148,24 @@ Smoke test:
 benchmfg train algorithm=my_algo environment=lasry_lions_chain device=cpu
 ```
 
+## Add An RL Best Response
+
+BenchMFG keeps MFG environments stateless. For RL, wrap a fixed mean field into
+the MDP seen by a representative agent:
+
+```python
+from benchmfg.rl import DQNBestResponse, FixedMeanFieldEnv, PPOBestResponse
+
+rl_env = FixedMeanFieldEnv(environment, mean_field)
+policy = PPOBestResponse(environment, total_timesteps=10_000).solve(mean_field)
+policy = DQNBestResponse(environment, total_timesteps=10_000).solve(mean_field)
+```
+
+Use `algorithm.dampedfp.best_response=ppo` or
+`algorithm.dampedfp.best_response=dqn` to replace exact dynamic-programming best
+responses inside DampedFP. Install `bench-mfg-suite[rl]` for Gymnasium and
+Stable-Baselines3 support.
+
 ## Checklist
 
 - Run `benchmfg env list` or `benchmfg algo list` and confirm the new YAML appears.

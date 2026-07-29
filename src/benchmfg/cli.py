@@ -63,6 +63,29 @@ def _plot(args: list[str]) -> None:
     _run_module(module, rest)
 
 
+def _garnet(args: list[str]) -> None:
+    if not args:
+        from benchmfg import banners
+
+        banners.garnet()
+        return
+
+    command, rest = args[0], args[1:]
+    modules = {
+        "scaling": "benchmfg.garnet.matrix",
+        "aggregate": "benchmfg.garnet.aggregate",
+        "plot-scaling": "benchmfg.garnet.plot",
+    }
+    try:
+        module = modules[command]
+    except KeyError as exc:
+        raise SystemExit(
+            "Unknown garnet command: "
+            f"{command}. Use one of: scaling, aggregate, plot-scaling"
+        ) from exc
+    _run_module(module, rest)
+
+
 def _list(args: list[str]) -> None:
     parser = argparse.ArgumentParser(prog="benchmfg list")
     parser.add_argument(
@@ -114,6 +137,7 @@ def main(argv: list[str] | None = None) -> None:
         print("Commands:")
         print("  hello")
         print("  garnet")
+        print("  garnet {scaling,aggregate,plot-scaling} ...")
         print("  mfpso")
         print("  train [HYDRA_OVERRIDES...]")
         print("  sweep [HYDRA_OVERRIDES...]")
@@ -124,10 +148,12 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     command, rest = args[0], args[1:]
-    if command in {"hello", "garnet", "mfpso"}:
+    if command in {"hello", "mfpso"}:
         from benchmfg import banners
 
         getattr(banners, command)()
+    elif command == "garnet":
+        _garnet(rest)
     elif command == "train":
         _run_hydra(rest)
     elif command == "sweep":
