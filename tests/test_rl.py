@@ -32,6 +32,12 @@ class _SwitchSolver:
         return np.array([[0.0, 1.0], [0.0, 1.0]])
 
 
+def _patch_fake_rl_env(monkeypatch):
+    monkeypatch.setattr(
+        "benchmfg.rl._make_fixed_mean_field_env", lambda *_args, **_kwargs: object()
+    )
+
+
 def test_fixed_mean_field_env_matches_wrapped_model():
     pytest.importorskip("gymnasium")
     model = _contraction_game(horizon=2)
@@ -162,6 +168,7 @@ def test_ppo_best_response_uses_model_gamma(monkeypatch):
             pass
 
     monkeypatch.setattr("benchmfg.rl._require_sb3", lambda: _Agent)
+    _patch_fake_rl_env(monkeypatch)
 
     PPOBestResponse(
         model, total_timesteps=1, normalize_reward=False, device="cuda"
@@ -190,6 +197,7 @@ def test_ppo_warm_start_reuses_agent(monkeypatch):
             seen["set_env"] += 1
 
     monkeypatch.setattr("benchmfg.rl._require_sb3", lambda: _Agent)
+    _patch_fake_rl_env(monkeypatch)
 
     solver = PPOBestResponse(
         model,
@@ -243,6 +251,7 @@ def test_dqn_best_response_uses_model_gamma(monkeypatch):
             return 0, None
 
     monkeypatch.setattr("benchmfg.rl._require_dqn", lambda: _Agent)
+    _patch_fake_rl_env(monkeypatch)
 
     DQNBestResponse(
         model, total_timesteps=1, normalize_reward=False, device="cuda"
@@ -275,6 +284,7 @@ def test_dqn_warm_start_copies_previous_policy(monkeypatch):
             return 0, None
 
     monkeypatch.setattr("benchmfg.rl._require_dqn", lambda: _Agent)
+    _patch_fake_rl_env(monkeypatch)
 
     solver = DQNBestResponse(model, total_timesteps=1, normalize_reward=False)
     solver.solve(model.stationary_mean_field)
