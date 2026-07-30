@@ -76,24 +76,17 @@ def hello() -> None:
     print()
     print(f"{B}Benchmark suite for Mean Field Game algorithms.{R}")
     print()
-    print(f"{BT}Initialize the repository:{R}")
-    print("  uv sync --extra dev")
-    print()
     print(f"{BT}List what is registered:{R}")
     print("  benchmfg env list")
     print("  benchmfg algo list")
     print()
     print(f"{BT}Environments:{R}")
     print("  contraction_game, four_rooms_obstacles, kinetic_congestion")
-    print("  lasry_lions_chain, MF_Garnet, multiple_equilibria")
+    print("  lasry_lions_chain, mf_garnet, multiple_equilibria")
     print("  no_interaction_game, potential_game2d, rock_paper_scissors, sis_epidemic")
     print()
     print(f"{BT}Algorithms:{R}")
-    print(
-        "  damped_fixed_point (pure fixed point, damped fixed point, fictitious play, "
-        "), omd, pi (policy iteration, smooth_policy_iteration, "
-        "boltzmann_policy_itration), MFPso"
-    )
+    print("  damped_fixed_point, omd, pi, pso")
     print()
     print(f"{BP}First example:{R}")
     print("  benchmfg train algorithm=pso environment=kinetic_congestion device=cpu")

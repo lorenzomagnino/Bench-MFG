@@ -527,16 +527,9 @@ def plot_policy_2D(
         tick_step = 2  # Show ticks at 0, 2, 4, etc.
 
     if action_cmaps is None:
-        if (
-            colors.policy2d_action_cmaps is not None
-            and len(colors.policy2d_action_cmaps) == N_actions
-        ):
-            action_cmaps = colors.policy2d_action_cmaps
-        elif (
-            colors.policy2d_action_cmaps is not None
-            and len(colors.policy2d_action_cmaps) >= N_actions
-        ):
-            action_cmaps = colors.policy2d_action_cmaps[:N_actions]
+        cfg_cmaps = _get_color_config_value(colors, "policy2d_action_cmaps")
+        if cfg_cmaps is not None and len(cfg_cmaps) >= N_actions:
+            action_cmaps = cfg_cmaps[:N_actions]
         else:
             default_cmaps = [
                 "Greens",
@@ -557,16 +550,9 @@ def plot_policy_2D(
 
     # Default action labels from config if available
     if action_labels is None:
-        if (
-            colors.policy2d_action_labels is not None
-            and len(colors.policy2d_action_labels) == N_actions
-        ):
-            action_labels = colors.policy2d_action_labels
-        elif (
-            colors.policy2d_action_labels is not None
-            and len(colors.policy2d_action_labels) >= N_actions
-        ):
-            action_labels = colors.policy2d_action_labels[:N_actions]
+        cfg_labels = _get_color_config_value(colors, "policy2d_action_labels")
+        if cfg_labels is not None and len(cfg_labels) >= N_actions:
+            action_labels = cfg_labels[:N_actions]
         else:
             action_labels = [f"Action {i}" for i in range(N_actions)]
     else:
@@ -577,11 +563,9 @@ def plot_policy_2D(
     import matplotlib.colors as mcolors
 
     # Resolve solid colors for each action
-    if (
-        colors.policy2d_action_colors is not None
-        and len(colors.policy2d_action_colors) >= N_actions
-    ):
-        action_colors_hex = colors.policy2d_action_colors[:N_actions]
+    cfg_action_colors = _get_color_config_value(colors, "policy2d_action_colors")
+    if cfg_action_colors is not None and len(cfg_action_colors) >= N_actions:
+        action_colors_hex = cfg_action_colors[:N_actions]
     else:
         action_colors_hex = ["#7B2FBE", "#4A55A2", "#FA8072", "#2D6A4F", "#1B7A7A"][
             :N_actions
