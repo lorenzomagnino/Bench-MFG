@@ -14,7 +14,6 @@ jobs:
       url: https://pypi.org/project/bench-mfg-suite/
     permissions:
       contents: read
-      id-token: write
 
     steps:
       - name: Check out repository
@@ -42,3 +41,5 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}
