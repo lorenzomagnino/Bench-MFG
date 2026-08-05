@@ -193,5 +193,104 @@ def mfpso() -> None:
     print("  ./scripts/run_pso.sh")
 
 
+_PARAMS_BANNER = [
+    r"    _    _    ____  ___  ____   _    ____      _    __  __ ____  ",
+    r"   / \  | |  / ___|/ _ \|  _ \ / \  |  _ \    / \  |  \/  / ___| ",
+    r"  / _ \ | | | |  _| | | | |_) / _ \ | |_) |  / _ \ | |\/| \___ \ ",
+    r" / ___ \| |_| |_| | |_| |  _ / ___ \|  _ <  / ___ \| |  | |___) |",
+    r"/_/   \_\____\____|\___/|_| /_/   \_\_| \_\/_/   \_\_|  |_|____/ ",
+]
+
+# (name, default, range, note) per algorithm; ranges are the grids used in the
+# paper sweeps (scripts/run_*.sh) so guidance and experiments stay in sync.
+_ALGO_PARAMS = {
+    "pso (MF-PSO)": [
+        ("num_particles", "100", "40 - 200", "swarm size; cost is linear in it"),
+        ("num_iterations", "300", "30 - 500", "outer iterations"),
+        ("w", "0.4", "0.3, 0.7", "inertia; lower = faster, less exploration"),
+        ("c1", "0.5", "0.3, 0.7, 1.2", "cognitive pull to particle best"),
+        ("c2", "1.5", "0.3, 0.6, 1.2", "social pull to swarm best"),
+        ("temperature", "1.0", "0.2, 0.7", "logits -> policy sharpness"),
+        (
+            "initialization_type",
+            "PSO_uniform",
+            "PSO_uniform | one_uniform | dirichlet",
+            "swarm init; see sensitivity study",
+        ),
+    ],
+    "omd": [
+        ("num_iterations", "100", "50 - 500", "outer iterations"),
+        ("learning_rate", "0.1", "0.5, 0.05, 0.005", "mirror-descent step size"),
+        ("temperature", "0.2", "0.2, 0.5, 0.8", "softmax sharpness"),
+    ],
+    "damped_fixed_point": [
+        (
+            "lambda_schedule",
+            "fictitious_play",
+            "pure | damped | fictitious_play",
+            "pure and fictitious_play take no extra parameter",
+        ),
+        ("damped_constant", "None", "0.1, 0.5, 0.8", "only for lambda_schedule=damped"),
+        ("num_transition_steps", "20", "10 - 50", "mean-field kernel steps"),
+        (
+            "best_response",
+            "exact",
+            "exact | ppo | dqn",
+            "model-free oracles add ppo_* / dqn_* knobs",
+        ),
+    ],
+    "pi": [
+        (
+            "variant",
+            "policy_iteration",
+            "policy_iteration | smooth_policy_iteration | boltzmann_policy_iteration",
+            "plain policy_iteration has no hyperparameter",
+        ),
+        ("damped_constant", "None", "0.1, 0.5, 0.8", "smooth / boltzmann variants"),
+        ("temperature", "0.5", "0.2, 0.5, 0.8", "boltzmann variant only"),
+    ],
+}
+
+
+def algo_parameters() -> None:
+    """Print each algorithm's hyperparameters, defaults, and sweep ranges."""
+    print()
+    print(BP + "\n".join(_PARAMS_BANNER) + R)
+    print()
+    print("Hyperparameters, defaults, and the sweep grids used in the paper.")
+    print("Override any of them as algorithm.<algo>.<name>=value.")
+    for algo, params in _ALGO_PARAMS.items():
+        # widths from the data so long variant lists do not push the notes out of line
+        w_name = max(len("parameter"), *(len(p[0]) for p in params))
+        w_def = max(len("default"), *(len(p[1]) for p in params))
+        w_val = max(len("sweep range"), *(len(p[2]) for p in params))
+        print()
+        print(f"{BT}algorithm={algo}{R}")
+        print(
+            f"  {'parameter':<{w_name}}  {'default':<{w_def}}  "
+            f"{'sweep range':<{w_val}}  note"
+        )
+        for name, default, values, note in params:
+            print(f"  {name:<{w_name}}  {default:<{w_def}}  {values:<{w_val}}  {note}")
+    print()
+    print(f"{BP}How to sweep:{R} comma-separated values run a Hydra multirun grid.")
+    print("  benchmfg sweep algorithm=omd environment=lasry_lions_chain \\")
+    print("    experiment.name=omd_sweep experiment.random_seed=42,10,111,1032 \\")
+    print("    algorithm.omd.learning_rate=0.5,0.05,0.005 \\")
+    print("    algorithm.omd.temperature=0.2,0.5,0.8")
+    print()
+    print(f"{BT}Guidance:{R}")
+    print("  - always sweep experiment.random_seed; report medians across seeds")
+    print("  - keep environment and iteration budget fixed inside a comparison")
+    print("  - start from defaults; they solve every packaged environment")
+    print("  - PSO: tune w, c1, c2 first; temperature mainly affects final sharpness")
+    print()
+    print(f"{BP}Scripted paper sweeps:{R}")
+    print("  ./scripts/run_pso.sh   ./scripts/run_omd.sh")
+    print("  ./scripts/run_pi.sh    ./scripts/run_dampedfp.sh")
+    print()
+    print(f"{BT}Related:{R} benchmfg algo list | benchmfg env list | benchmfg mfpso")
+
+
 if __name__ == "__main__":
     hello()

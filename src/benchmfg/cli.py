@@ -144,14 +144,15 @@ def main(argv: list[str] | None = None) -> None:
         print("  plot {single-run,sweep,compare} ...")
         print("  env list")
         print("  algo list")
+        print("  algo-parameters")
         print("  list {envs,algorithms,plot-algorithms}")
         return
 
     command, rest = args[0], args[1:]
-    if command in {"hello", "mfpso"}:
+    if command in {"hello", "mfpso", "algo-parameters"}:
         from benchmfg import banners
 
-        getattr(banners, command)()
+        getattr(banners, command.replace("-", "_"))()
     elif command == "garnet":
         _garnet(rest)
     elif command == "train":

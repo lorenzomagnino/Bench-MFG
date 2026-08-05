@@ -97,6 +97,8 @@ benchmfg train algorithm=omd environment=four_rooms_obstacles device=cpu
 
 Use `benchmfg env list` and `benchmfg algo list` for the installed package’s authoritative list.
 
+Use `benchmfg algo-parameters` (or `make algo-parameters`) to print every algorithm’s hyperparameters, defaults, recommended sweep ranges, and the exact override syntax.
+
 ## Sweep
 
 Run a sweep:

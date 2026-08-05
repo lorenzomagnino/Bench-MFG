@@ -1,4 +1,4 @@
-.PHONY: install run profile test lint format clean help hello garnet mfpso
+.PHONY: install run profile test lint format clean help hello garnet mfpso algo-parameters
 
 PROFILE_OUT ?= profiling_output/profile_$(shell date +%Y%m%d_%H%M%S).html
 
@@ -7,6 +7,7 @@ help:
 	@echo "  make hello     - Print a BenchMFG quick-start guide"
 	@echo "  make garnet    - Print MF-Garnet usage notes"
 	@echo "  make mfpso     - Print Mean Field PSO usage notes"
+	@echo "  make algo-parameters - Print algorithm hyperparameters and sweep ranges"
 	@echo "  make install   - Install dependencies with uv"
 	@echo "  make run       - Run main.py"
 	@echo "  make profile   - Profile main.py and open flamegraph HTML"
@@ -49,3 +50,6 @@ garnet:
 
 mfpso:
 	@uv run benchmfg mfpso
+
+algo-parameters:
+	@uv run benchmfg algo-parameters
