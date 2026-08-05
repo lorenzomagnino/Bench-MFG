@@ -66,13 +66,16 @@ https://docs.jax.dev/en/latest/installation.html
 
 ## Quick Start ⚡️
 
-👑 Quick understanding of the repository and the package run the following three commands
+👑 Quick understanding of the repository and the package run the following commands
 
 ```bash
 benchmfg hello
 benchmfg garnet
 benchmfg mfpso
+benchmfg algo-parameters
 ```
+
+<img src="docs/assets/benchmfg-hello.png" width="360" alt="Preview of benchmfg hello"/>
 
 List registered configs:
 
