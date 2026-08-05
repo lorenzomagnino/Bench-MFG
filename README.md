@@ -70,6 +70,8 @@ https://docs.jax.dev/en/latest/installation.html
 
 ```bash
 benchmfg hello
+```
+```bash
 benchmfg garnet
 benchmfg mfpso
 benchmfg algo-parameters
