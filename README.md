@@ -6,6 +6,9 @@
 
 Benchmark suite for Mean Field Game algorithms.
 
+[Documentation](https://benchmfg.readthedocs.io/en/latest/) ·
+[Paper](https://arxiv.org/abs/2602.12517)
+
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![JAX](https://img.shields.io/badge/JAX-accelerated-salmon.svg)](https://github.com/google/jax)
 [![Hydra](https://img.shields.io/badge/Hydra-config-89b8cd.svg)](https://hydra.cc)
@@ -182,6 +185,8 @@ src/benchmfg/
 See [EXPERIMENTS.md](EXPERIMENTS.md) for batch-run scripts.
 
 ## Documentation website
+
+Read the [BenchMFG documentation](https://benchmfg.readthedocs.io/en/latest/).
 
 The Sphinx website lives in `docs/`. Build and preview it locally with:
 
