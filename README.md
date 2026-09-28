@@ -38,6 +38,7 @@ Benchmark suite for Mean Field Game algorithms.
 - [Outputs And Plots](#outputs-and-plots)
 - [Extending BenchMFG: create new envs and algos](docs/EXTENDING.md)
 - [MF-Garnet: scaling laws and robustness](docs/MFG_GARNET.md)
+- [Citation](#citation)
 
 ## Install
 
@@ -197,3 +198,19 @@ python -m http.server 8000 --directory docs/_build/html
 
 Open <http://localhost:8000>. To publish, import this repository into
 [Read the Docs](https://readthedocs.org/); `.readthedocs.yaml` configures the build.
+
+## Citation
+
+If you use BenchMFG in your research, please cite our [paper](https://arxiv.org/abs/2602.12517):
+
+```bibtex
+@misc{magnino2026benchmfg,
+  title = {{Bench-MFG}: A Benchmark Suite for Learning in Stationary Mean Field Games},
+  author = {Magnino, Lorenzo and Shen, Jiacheng and Geist, Matthieu and Pietquin, Olivier and Lauri\`ere, Mathieu},
+  year = {2026},
+  eprint = {2602.12517},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  url = {https://arxiv.org/abs/2602.12517}
+}
+```
