@@ -12,6 +12,7 @@ env/
 # Distribution / packaging
 dist/
 build/
+docs/_build/
 *.egg-info/
 
 # Testing

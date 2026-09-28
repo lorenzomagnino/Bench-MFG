@@ -180,3 +180,15 @@ src/benchmfg/
 ```
 
 See [EXPERIMENTS.md](EXPERIMENTS.md) for batch-run scripts.
+
+## Documentation website
+
+The Sphinx website lives in `docs/`. Build and preview it locally with:
+
+```bash
+uv run --isolated --no-project --with-requirements docs/requirements.txt sphinx-build -W --keep-going -b html docs docs/_build/html
+python -m http.server 8000 --directory docs/_build/html
+```
+
+Open <http://localhost:8000>. To publish, import this repository into
+[Read the Docs](https://readthedocs.org/); `.readthedocs.yaml` configures the build.
