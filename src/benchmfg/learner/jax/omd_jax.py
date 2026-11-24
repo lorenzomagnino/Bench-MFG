@@ -108,7 +108,10 @@ class OMD_jax:
         log.info("Initial Exploitability: %s", exploitabilities[0])
         if logger is not None:
             logger.log_iteration(
-                0, exploitabilities[0], np.asarray(omd_components.mean_field)
+                0,
+                exploitabilities[0],
+                np.asarray(omd_components.mean_field),
+                policy=np.asarray(omd_components.policy),
             )
 
         for iteration in tqdm(
@@ -145,7 +148,10 @@ class OMD_jax:
 
             if logger is not None:
                 logger.log_iteration(
-                    iteration, exploitability, np.asarray(omd_components.mean_field)
+                    iteration,
+                    exploitability,
+                    np.asarray(omd_components.mean_field),
+                    policy=np.asarray(omd_components.policy),
                 )
 
         log.info("Final OMD exploitability: %s", exploitabilities[-1])

@@ -130,7 +130,12 @@ class PI_python:
             log.info("Temperature: %s", self.temperature)
 
         if logger is not None:
-            logger.log_iteration(0, exploitabilities[0], pi_components.mean_field)
+            logger.log_iteration(
+                0,
+                exploitabilities[0],
+                pi_components.mean_field,
+                policy=pi_components.policy,
+            )
 
         for iteration in tqdm(
             range(1, self.num_iterations + 1),
@@ -171,7 +176,10 @@ class PI_python:
 
             if logger is not None:
                 logger.log_iteration(
-                    iteration, exploitability, pi_components.mean_field
+                    iteration,
+                    exploitability,
+                    pi_components.mean_field,
+                    policy=pi_components.policy,
                 )
 
             if exploitability < 1e-6 and self.early_stopping_enabled:

@@ -111,7 +111,9 @@ class DampedFP_python:
         log.info("Initial Exploitability: %s", exploitabilities[0])
         log.info("Lambda Schedule: %s", self.lambda_schedule)
         if logger is not None:
-            logger.log_iteration(0, exploitabilities[0], state.mean_field)
+            logger.log_iteration(
+                0, exploitabilities[0], state.mean_field, policy=state.policy
+            )
         for k in tqdm(range(1, self.num_iterations + 1), desc="Running"):
             policy_best_response = self._best_response(state.mean_field)
             mean_field_br = self.model.mean_field_by_transition_kernel(
@@ -140,7 +142,14 @@ class DampedFP_python:
                 exploitability = self.model.exploitability(state.policy)
             exploitabilities.append(exploitability)
             if logger is not None:
-                logger.log_iteration(k, exploitability, state.mean_field)
+                eval_policy = (
+                    average_policy
+                    if self.lambda_schedule == "fictitious_play"
+                    else state.policy
+                )
+                logger.log_iteration(
+                    k, exploitability, state.mean_field, policy=eval_policy
+                )
 
         final_policy = (
             average_policy
