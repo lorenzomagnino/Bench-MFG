@@ -7,6 +7,7 @@
 Benchmark suite for Mean Field Game algorithms.
 
 [Documentation](https://benchmfg.readthedocs.io/en/latest/) ·
+[Tutorial](https://benchmfg.readthedocs.io/en/latest/tutorial.html) ·
 [Paper](https://arxiv.org/abs/2602.12517)
 
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
@@ -123,6 +124,10 @@ benchmfg sweep \
 ```
 
 ## Python API
+
+For a step-by-step walkthrough (OMD on the beach bar, with plots and GIFs), see the
+[interactive tutorial](https://benchmfg.readthedocs.io/en/latest/tutorial.html)
+([notebook](docs/tutorial.ipynb)).
 
 ```python
 import benchmfg
