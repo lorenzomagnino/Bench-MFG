@@ -146,6 +146,43 @@ fixed_mf_env = benchmfg.make_fixed_mean_field_env(
 )
 ```
 
+### Animate a run 🎞️
+
+Fictitious Play on kinetic congestion (5x5 grid, target in the top-right corner):
+exploitability, mean field, and policy (most likely action per cell) over the iterations.
+
+<p align="center">
+  <img src="docs/assets/fp_exploitability.gif" width="32%" alt="Fictitious Play exploitability over iterations"/>
+  <img src="docs/assets/fp_mean_field.gif" width="32%" alt="Fictitious Play mean field over iterations"/>
+  <img src="docs/assets/fp_policy.gif" width="32%" alt="Fictitious Play policy over iterations"/>
+</p>
+
+Generate them with:
+
+```python
+import benchmfg as bmfg
+
+cfg = bmfg.load_config([
+    "environment=kinetic_congestion",
+    "algorithm=damped_fixed_point",
+    "algorithm.dampedfp.lambda_schedule=fictitious_play",
+    "algorithm.dampedfp.num_iterations=50",
+])
+environment, initial_policy = bmfg.make_environment(cfg)
+solver = bmfg.make_solver(cfg, environment=environment, initial_policy=initial_policy)
+
+history = bmfg.History()  # records exploitability, mean field and policy per iteration
+solver.eval(logger=history)
+
+grid_dim = tuple(cfg.environment.grid.dimension)
+bmfg.plot_gif(history.exploitabilities, "fp_exploitability.gif", kind="exploitability", every=2)
+bmfg.plot_gif(history.mean_fields, "fp_mean_field.gif", kind="mean_field", every=2, grid_dim=grid_dim)
+bmfg.plot_gif(history.policies, "fp_policy.gif", kind="policy", every=2, grid_dim=grid_dim)
+```
+
+Use `bmfg.print_config_env(cfg)` and `bmfg.print_config_algo(cfg)` to inspect the
+configuration, and `bmfg.show_gifs(...)` to display GIFs side by side in a notebook.
+
 ## Outputs And Plots
 
 Runs write artifacts under:
