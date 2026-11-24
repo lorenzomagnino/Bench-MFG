@@ -148,13 +148,13 @@ fixed_mf_env = benchmfg.make_fixed_mean_field_env(
 
 ### Animate a run 🎞️
 
-Fictitious Play on kinetic congestion (5x5 grid, target in the top-right corner):
-exploitability, mean field, and policy (most likely action per cell) over the iterations.
+OMD on the beach bar (1D Lasry-Lions chain, bar in the middle): agents want to be close
+to the bar but avoid the crowd. Exploitability, mean field, and policy over the iterations.
 
 <p align="center">
-  <img src="docs/assets/fp_exploitability.gif" width="32%" alt="Fictitious Play exploitability over iterations"/>
-  <img src="docs/assets/fp_mean_field.gif" width="32%" alt="Fictitious Play mean field over iterations"/>
-  <img src="docs/assets/fp_policy.gif" width="32%" alt="Fictitious Play policy over iterations"/>
+  <img src="docs/assets/omd_exploitability.gif" width="32%" alt="OMD exploitability over iterations"/>
+  <img src="docs/assets/omd_mean_field.gif" width="32%" alt="OMD mean field over iterations"/>
+  <img src="docs/assets/omd_policy.gif" width="32%" alt="OMD policy over iterations"/>
 </p>
 
 Generate them with:
@@ -163,10 +163,11 @@ Generate them with:
 import benchmfg as bmfg
 
 cfg = bmfg.load_config([
-    "environment=kinetic_congestion",
-    "algorithm=damped_fixed_point",
-    "algorithm.dampedfp.lambda_schedule=fictitious_play",
-    "algorithm.dampedfp.num_iterations=50",
+    "environment=lasry_lions_chain",
+    "algorithm=omd",
+    "algorithm.omd.num_iterations=150",
+    "algorithm.omd.learning_rate=0.02",
+    "algorithm.omd.temperature=0.2",
 ])
 environment, initial_policy = bmfg.make_environment(cfg)
 solver = bmfg.make_solver(cfg, environment=environment, initial_policy=initial_policy)
@@ -174,10 +175,10 @@ solver = bmfg.make_solver(cfg, environment=environment, initial_policy=initial_p
 history = bmfg.History()  # records exploitability, mean field and policy per iteration
 solver.eval(logger=history)
 
-grid_dim = tuple(cfg.environment.grid.dimension)
-bmfg.plot_gif(history.exploitabilities, "fp_exploitability.gif", kind="exploitability", every=2)
-bmfg.plot_gif(history.mean_fields, "fp_mean_field.gif", kind="mean_field", every=2, grid_dim=grid_dim)
-bmfg.plot_gif(history.policies, "fp_policy.gif", kind="policy", every=2, grid_dim=grid_dim)
+actions = ["left", "stay", "right"]
+bmfg.plot_gif(history.exploitabilities, "omd_exploitability.gif", kind="exploitability", every=5)
+bmfg.plot_gif(history.mean_fields, "omd_mean_field.gif", kind="mean_field", every=5)
+bmfg.plot_gif(history.policies, "omd_policy.gif", kind="policy", every=5, action_labels=actions)
 ```
 
 Use `bmfg.print_config_env(cfg)` and `bmfg.print_config_algo(cfg)` to inspect the
