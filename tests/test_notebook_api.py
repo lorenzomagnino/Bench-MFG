@@ -71,6 +71,7 @@ def test_make_environment_is_seeded():
 
 
 def test_show_gifs_embeds_all(tmp_path):
+    pytest.importorskip("IPython")  # notebook-only helper; IPython is optional
     paths = [
         bmfg.plot_gif([1.0, 0.5], tmp_path / f"{i}.gif", kind="exploitability")
         for i in range(2)
