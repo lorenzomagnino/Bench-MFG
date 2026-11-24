@@ -10,7 +10,7 @@ from omegaconf import DictConfig, OmegaConf
 
 from benchmfg.rl import FixedMeanFieldEnv
 from benchmfg.train import run
-from benchmfg.utility.animation import plot_gif  # noqa: F401  (re-exported)
+from benchmfg.utility.animation import plot_gif, show_gifs  # noqa: F401
 from benchmfg.utility.create_environment import create_environment
 from benchmfg.utility.create_solver import create_solver
 from benchmfg.utility.MFGPlots import plot_mean_field, plot_policy  # noqa: F401

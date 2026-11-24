@@ -17,6 +17,7 @@ from benchmfg.api import (
     print_config_algo,
     print_config_env,
     run_experiment,
+    show_gifs,
 )
 
 try:
@@ -38,4 +39,5 @@ __all__ = [
     "print_config_algo",
     "print_config_env",
     "run_experiment",
+    "show_gifs",
 ]

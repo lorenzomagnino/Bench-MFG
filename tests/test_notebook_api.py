@@ -31,10 +31,23 @@ def test_history_records_every_iteration(use_python):
     [
         ("mean_field", [np.full(5, 0.2), np.eye(5)[2]]),
         ("policy", [np.full((5, 3), 1 / 3), np.eye(3)[np.zeros(5, int)]]),
+        ("exploitability", [10.0, 1.0, 0.1]),
     ],
 )
 def test_plot_gif_writes_file(tmp_path, kind, frames):
     out = bmfg.plot_gif(frames, tmp_path / "sub" / "x.gif", kind=kind)
+    assert out.read_bytes()[:6] == b"GIF89a"
+
+
+@pytest.mark.parametrize(
+    "kind, frames",
+    [
+        ("mean_field", [np.full(4, 0.25), np.eye(4)[3]]),
+        ("policy", [np.full((4, 5), 0.2), np.eye(5)[np.full(4, 4)]]),
+    ],
+)
+def test_plot_gif_grid(tmp_path, kind, frames):
+    out = bmfg.plot_gif(frames, tmp_path / "x.gif", kind=kind, grid_dim=(2, 2))
     assert out.read_bytes()[:6] == b"GIF89a"
 
 
@@ -55,3 +68,11 @@ def test_make_environment_is_seeded():
     _, pi_a = bmfg.make_environment(OVERRIDES)
     _, pi_b = bmfg.make_environment(OVERRIDES)
     np.testing.assert_array_equal(pi_a, pi_b)
+
+
+def test_show_gifs_embeds_all(tmp_path):
+    paths = [
+        bmfg.plot_gif([1.0, 0.5], tmp_path / f"{i}.gif", kind="exploitability")
+        for i in range(2)
+    ]
+    assert bmfg.show_gifs(*paths).data.count("data:image/gif;base64,") == 2
