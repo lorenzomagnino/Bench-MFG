@@ -160,7 +160,10 @@ class PI_jax:
 
         if logger is not None:
             logger.log_iteration(
-                0, exploitabilities[0], np.asarray(pi_components.mean_field)
+                0,
+                exploitabilities[0],
+                np.asarray(pi_components.mean_field),
+                policy=np.asarray(pi_components.policy),
             )
 
         for iteration in tqdm(
@@ -211,7 +214,10 @@ class PI_jax:
 
             if logger is not None:
                 logger.log_iteration(
-                    iteration, exploitability, np.asarray(pi_components.mean_field)
+                    iteration,
+                    exploitability,
+                    np.asarray(pi_components.mean_field),
+                    policy=np.asarray(pi_components.policy),
                 )
 
             if exploitability < 1e-6 and self.early_stopping_enabled:

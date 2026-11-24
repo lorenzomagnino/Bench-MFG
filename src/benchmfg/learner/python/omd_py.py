@@ -78,7 +78,12 @@ class OMD_python:
 
         log.info("Initial Exploitability: %s", exploitabilities[0])
         if logger is not None:
-            logger.log_iteration(0, exploitabilities[0], omd_components.mean_field)
+            logger.log_iteration(
+                0,
+                exploitabilities[0],
+                omd_components.mean_field,
+                policy=omd_components.policy,
+            )
 
         for iteration in tqdm(
             range(1, self.num_iterations + 1),
@@ -106,7 +111,10 @@ class OMD_python:
 
             if logger is not None:
                 logger.log_iteration(
-                    iteration, exploitability, omd_components.mean_field
+                    iteration,
+                    exploitability,
+                    omd_components.mean_field,
+                    policy=omd_components.policy,
                 )
 
         log.info("Final OMD exploitability: %s", exploitabilities[-1])

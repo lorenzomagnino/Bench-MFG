@@ -55,3 +55,4 @@ profiling_ouput/
 
 # uv lock (keep uv.lock but not cache)
 .uv/
+docs/gifs/

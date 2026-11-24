@@ -136,7 +136,12 @@ class DampedFP_jax:
         log.info("Initial Exploitability: %s", exploitabilities[0])
         log.info("Lambda Schedule: %s", self.lambda_schedule)
         if logger is not None:
-            logger.log_iteration(0, exploitabilities[0], np.asarray(state.mean_field))
+            logger.log_iteration(
+                0,
+                exploitabilities[0],
+                np.asarray(state.mean_field),
+                policy=np.asarray(state.policy),
+            )
         for k in tqdm(range(1, self.num_iterations + 1), desc="Running"):
             policy_best_response = self._best_response(state.mean_field)
             mean_field_br = mean_field_by_transition_kernel_multi_jax(
@@ -180,7 +185,17 @@ class DampedFP_jax:
                 )
             exploitabilities.append(exploitability)
             if logger is not None:
-                logger.log_iteration(k, exploitability, np.asarray(state.mean_field))
+                eval_policy = (
+                    average_policy
+                    if self.lambda_schedule == "fictitious_play"
+                    else state.policy
+                )
+                logger.log_iteration(
+                    k,
+                    exploitability,
+                    np.asarray(state.mean_field),
+                    policy=np.asarray(eval_policy),
+                )
 
         final_policy = (
             average_policy

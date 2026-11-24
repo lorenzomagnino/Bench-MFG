@@ -190,6 +190,7 @@ class WandbLogger:
         iteration: int,
         exploitability: float,
         mean_field: np.ndarray | None = None,
+        policy: np.ndarray | None = None,
     ) -> None:
         """Log metrics at each iteration.
 
@@ -197,6 +198,7 @@ class WandbLogger:
             iteration: Current iteration number
             exploitability: Current exploitability value
             mean_field: Current mean field distribution (not used, kept for compatibility)
+            policy: Current policy (not used, kept for compatibility)
         """
         if not self.enabled:
             return

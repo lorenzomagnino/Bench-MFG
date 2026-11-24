@@ -25,6 +25,7 @@ you compare solvers across reproducible random games.
 :caption: Documentation
 
 getting-started
+tutorial
 MFG_GARNET
 EXTENDING
 ```
