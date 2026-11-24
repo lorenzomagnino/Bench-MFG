@@ -165,7 +165,7 @@ import benchmfg as bmfg
 cfg = bmfg.load_config([
     "environment=lasry_lions_chain",
     "algorithm=omd",
-    "algorithm.omd.num_iterations=150",
+    "algorithm.omd.num_iterations=60",
     "algorithm.omd.learning_rate=0.02",
     "algorithm.omd.temperature=0.2",
 ])
@@ -176,9 +176,9 @@ history = bmfg.History()  # records exploitability, mean field and policy per it
 solver.eval(logger=history)
 
 actions = ["left", "stay", "right"]
-bmfg.plot_gif(history.exploitabilities, "omd_exploitability.gif", kind="exploitability", every=5)
-bmfg.plot_gif(history.mean_fields, "omd_mean_field.gif", kind="mean_field", every=5)
-bmfg.plot_gif(history.policies, "omd_policy.gif", kind="policy", every=5, action_labels=actions)
+bmfg.plot_gif(history.exploitabilities, "omd_exploitability.gif", kind="exploitability", every=2)
+bmfg.plot_gif(history.mean_fields, "omd_mean_field.gif", kind="mean_field", every=2)
+bmfg.plot_gif(history.policies, "omd_policy.gif", kind="policy", every=2, action_labels=actions)
 ```
 
 Use `bmfg.print_config_env(cfg)` and `bmfg.print_config_algo(cfg)` to inspect the
