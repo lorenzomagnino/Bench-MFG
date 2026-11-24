@@ -16,7 +16,7 @@ def plot_gif(
     frames: Sequence[np.ndarray],
     fn: str | Path,
     kind: str = "mean_field",
-    fps: int = 10,
+    fps: int = 3,
     every: int = 1,
     dpi: int = 72,
     action_labels: Sequence[str] | None = None,
